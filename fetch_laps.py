@@ -8,7 +8,7 @@ from pathlib import Path
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
-from openf1.util import openf1_client
+from openf1.util import openf1_client  # noqa: E402
 
 
 def main():

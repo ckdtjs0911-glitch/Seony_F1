@@ -1,5 +1,11 @@
 # OpenF1 API
 
+## Seony_F1 주말 보고서 자동화
+
+**프랙티스 1·2·3 + 퀄리파잉 + 레이스**, 모든 선수의 결과와 랩·타이어 데이터를
+수집해 HTML 보고서를 생성합니다. [자동 실행과 사용 방법](reports/AUTOMATION.md)을 참고하세요.
+GitHub Actions는 6시간마다 데이터를 갱신하며, 보고서와 원본 스냅샷을 저장합니다.
+
 **OpenF1** is a free and open-source API that offers real-time and historical Formula 1 data.<br />
 Whether you're a developer, data analyst, or F1 enthusiast, OpenF1 provides comprehensive
 access to lap timings, car telemetry, driver information, race control messages, and more.

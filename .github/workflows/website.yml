@@ -1,7 +1,6 @@
 name: "Deploy website"
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy_documentation:
