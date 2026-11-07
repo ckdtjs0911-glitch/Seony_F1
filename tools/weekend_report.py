@@ -382,7 +382,7 @@ def render(snapshots, output, now=None):
     for item in snapshots:
         session = item["session"]
         name = session["session_name"]
-        label = LABELS[name]
+        label = LABELS.get(name, name)
         data = item.get("data", {})
         rows = summarize(item) if data else []
         count = f"{len(rows)}명" if rows else "데이터 없음"

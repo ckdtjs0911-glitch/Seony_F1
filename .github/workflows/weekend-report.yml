@@ -52,19 +52,24 @@ jobs:
           REPORT_CODEX_MODEL: ${{ vars.REPORT_CODEX_MODEL }}
           REPORT_CLAUDE_MODEL: ${{ vars.REPORT_CLAUDE_MODEL }}
         run: python tools/review_pipeline.py --staging .report-staging --destination reports --optional
+      - name: Update cumulative year, Grand Prix and session archive
+        run: python tools/build_archive.py --since 2025
       - name: Retain reports and snapshots for download
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: f1-weekend-reports
-          path: reports/weekend-*/
+          path: |
+            reports/weekend-*/
+            reports/index.html
+            reports/catalog/
           if-no-files-found: ignore
           retention-days: 30
       - name: Commit successfully generated reports
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- reports/weekend-*
+          git add -- reports/weekend-* reports/index.html reports/catalog/
           if ! git diff --cached --quiet; then
             git commit -m 'Update F1 weekend reports'
             git push
