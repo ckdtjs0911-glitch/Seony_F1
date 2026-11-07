@@ -214,6 +214,7 @@ def fingerprint(snapshots):
         "weekend_report.py",
         "race_events.py",
         "race_attachments.py",
+        "race_pitstops.py",
         "report_charts.js",
         "report_charts.css",
     ):

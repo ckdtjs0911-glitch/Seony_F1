@@ -14,6 +14,7 @@ import requests
 
 from race_events import render_race_events
 from race_attachments import render_race_attachments
+from race_pitstops import render_pitstops
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from openf1.util import openf1_client  # noqa: E402
@@ -451,6 +452,7 @@ CHART_SECTION = """<section id="lap-sector-analysis" class="chart-workspace" sty
 def render(snapshots, output, now=None):
     now = now or datetime.now(timezone.utc)
     sections, chart_data, summary = [], [], []
+    race_appendix = ""
     for item in snapshots:
         session = item["session"]
         name = session["session_name"]
@@ -481,7 +483,8 @@ def render(snapshots, output, now=None):
             render_table(name, rows) + render_verdicts(name, rows) + render_stints(rows)
         )
         body += render_race_events(item, rows)
-        body += render_race_attachments(item)
+        if name == "Race":
+            race_appendix = render_pitstops(item, rows) + render_race_attachments(item)
         chart_data.extend(dict(row, session=label) for row in rows)
         sections.append(body)
     location = next(
@@ -501,12 +504,15 @@ def render(snapshots, output, now=None):
         "",
     )
     race_shortcut = (
-        '<li><a href="#race-incidents">레이스 주요 상황 · 리타이어</a></li>'
-        if any(
-            s["session"]["session_name"] == "Race" and s.get("data") for s in snapshots
-        )
+        '<li><a href="#race-incidents">레이스 주요 상황 · 리타이어</a></li><li><a href="#race-pit-stops">팀·선수별 피트스탑 기록</a></li>'
+        if race_appendix
         else ""
     )
+    if 'id="race-tyre-attachments"' in race_appendix:
+        race_shortcut += (
+            '<li><a href="#race-tyre-attachments">그랑프리별 타이어 컴파운드와 스타트 타이어</a></li>'
+        )
+
     safe_json = json.dumps(chart_data, ensure_ascii=False).replace("</", "<\\/")
     methodology = "".join(f"<li>{text}</li>" for text in METHODOLOGY)
     chart_css = CHART_CSS.read_text(encoding=ENCODING)
@@ -517,7 +523,7 @@ def render(snapshots, output, now=None):
 <p class="notice">OpenF1 API 데이터로 만든 보고서이며, FIA 공식 결과와 별도로 대조하지 않았습니다. 데이터 대기·누락·갱신 실패는 구분해 표시합니다. 각 세션의 선수 목록은 drivers·session_result·laps 응답에 나온 선수를 모두 합친 것입니다. 일정에 따라 아직 열리지 않은 세션이 있을 수 있습니다.</p>
 <ul>{"".join(summary)}{race_shortcut}<li><a href="#lap-sector-analysis">랩타임 &amp; 섹터 분석</a> · 세션별 랩·섹터·타이어 차트</li></ul><input id="search" type="search" placeholder="선수 / 팀 검색 (예: 노리스, 멕라렌)" aria-label="선수 또는 팀 검색">{"".join(sections)}
 {CHART_SECTION}
-<h2>지표 해석과 한계</h2><ul>{methodology}</ul><h2>출처</h2><p><a href="https://api.openf1.org/v1/sessions?meeting_key={esc(meeting)}">OpenF1 주말 세션 목록</a> · 각 session_key에 대한 drivers, session_result, laps, stints, pit, race_control 엔드포인트<br>이 HTML 파일 하나로 인터넷 연결 없이 표·검색·차트를 사용할 수 있습니다.</p></main>
+<h2>지표 해석과 한계</h2><ul>{methodology}</ul><h2>출처</h2><p><a href="https://api.openf1.org/v1/sessions?meeting_key={esc(meeting)}">OpenF1 주말 세션 목록</a> · 각 session_key에 대한 drivers, session_result, laps, stints, pit, race_control 엔드포인트<br>이 HTML 파일 하나로 인터넷 연결 없이 표·검색·차트를 사용할 수 있습니다.</p>{race_appendix}</main>
 <style>{chart_css}</style><script>{chart_js}</script></body></html>"""
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(page, encoding=ENCODING)

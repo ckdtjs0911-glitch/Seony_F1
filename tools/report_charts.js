@@ -160,7 +160,8 @@ const pagers=[...document.querySelectorAll('.result-table')].map((container,inde
   }
   render();return ()=>render(true);
 });
-const search=document.getElementById('search');if(search)search.oninput=()=>pagers.forEach(reset=>reset());
+function filterPitPanels(){const query=document.getElementById('search')?.value||'';document.querySelectorAll('[data-pit-driver]').forEach(panel=>panel.hidden=!matchesSearch(panel.dataset.search,query));document.querySelectorAll('[data-pit-team]').forEach(team=>team.hidden=![...team.querySelectorAll('[data-pit-driver]')].some(panel=>!panel.hidden));}
+const search=document.getElementById('search');if(search)search.oninput=()=>{pagers.forEach(reset=>reset());filterPitPanels();};
 
 const chartSearch=document.getElementById('chart-search');if(chartSearch)chartSearch.oninput=updateDriverOptions;
 phaseSelect.onchange=updateDriverOptions;
