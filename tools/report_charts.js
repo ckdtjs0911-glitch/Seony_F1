@@ -160,7 +160,24 @@ const pagers=[...document.querySelectorAll('.result-table')].map((container,inde
   }
   render();return ()=>render(true);
 });
-function filterPitPanels(){const query=document.getElementById('search')?.value||'';document.querySelectorAll('[data-pit-driver]').forEach(panel=>panel.hidden=!matchesSearch(panel.dataset.search,query));document.querySelectorAll('[data-pit-team]').forEach(team=>team.hidden=![...team.querySelectorAll('[data-pit-driver]')].some(panel=>!panel.hidden));}
+const pitSearch=document.getElementById('pit-search'),pitDriver=document.getElementById('pit-driver');
+const pitPanels=[...document.querySelectorAll('[data-pit-driver]')].sort((a,b)=>+a.dataset.pitPosition-+b.dataset.pitPosition);
+function applyPitFilter(){
+  const query=pitSearch?.value||'',globalQuery=document.getElementById('search')?.value||'',selected=pitDriver?.value||'all';
+  pitPanels.forEach(panel=>panel.hidden=!(matchesSearch(panel.dataset.search,query)&&matchesSearch(panel.dataset.search,globalQuery)&&(selected==='all'||panel.dataset.pitDriver===selected)));
+  document.querySelectorAll('[data-pit-team]').forEach(team=>team.hidden=![...team.querySelectorAll('[data-pit-driver]')].some(panel=>!panel.hidden));
+  const status=document.getElementById('pit-search-status');if(status){const visible=pitPanels.filter(panel=>!panel.hidden).length;status.textContent=visible?`전체 ${pitPanels.length}명 중 ${visible}명`:'검색 결과 없음';}
+}
+function filterPitPanels(){
+  if(!pitDriver)return;
+  const previous=pitDriver.value,query=pitSearch?.value||'',globalQuery=document.getElementById('search')?.value||'';
+  const matched=pitPanels.filter(panel=>matchesSearch(panel.dataset.search,query)&&matchesSearch(panel.dataset.search,globalQuery));
+  pitDriver.replaceChildren();const all=document.createElement('option');all.value='all';all.textContent='전체 선수';pitDriver.append(all);
+  for(const panel of matched){const o=document.createElement('option');o.value=panel.dataset.pitDriver;o.textContent=panel.dataset.pitLabel;pitDriver.append(o);}
+  if([...pitDriver.options].some(o=>o.value===previous))pitDriver.value=previous;
+  pitDriver.disabled=!matched.length;applyPitFilter();
+}
+if(pitSearch)pitSearch.oninput=filterPitPanels;if(pitDriver)pitDriver.onchange=applyPitFilter;filterPitPanels();
 const search=document.getElementById('search');if(search)search.oninput=()=>{pagers.forEach(reset=>reset());filterPitPanels();};
 
 const chartSearch=document.getElementById('chart-search');if(chartSearch)chartSearch.oninput=updateDriverOptions;

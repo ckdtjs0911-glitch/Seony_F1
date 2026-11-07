@@ -65,8 +65,12 @@ def render_pitstops(snapshot, rows):
             )
             heading = f'<h4>#{number} {escape(driver["name"])}</h4>'
             search = escape((driver["name"] + " " + team).lower())
+            label = escape(
+                f"{'P'+str(driver['position']) if driver.get('position') is not None else 'P—'} #{number} {driver['name']} - {team}"
+            )
             panel = (
-                f'<article data-pit-driver="{number}" data-search="{search}">' + heading
+                f'<article data-pit-driver="{number}" data-pit-label="{label}" data-pit-position="{driver.get("position") or 999}" data-search="{search}">'
+                + heading
             )
             if not events:
                 panel += '<p class="meta">수집된 레이스 시간 범위에서 확인된 피트 기록 없음</p>'
@@ -100,6 +104,7 @@ def render_pitstops(snapshot, rows):
         note += " 레이스 랩 시각이 없어 이벤트 시간 범위를 검증할 수 없습니다."
     return (
         '<section id="race-pit-stops" style="scroll-margin-top:24px"><h2>팀·선수별 피트스탑 기록</h2>'
+        '<div class="chart-toolbar"><label for="pit-search">선수 / 팀 검색</label><input id="pit-search" type="search" placeholder="예: 노리스, 멕라렌, McLaren"><select id="pit-driver" aria-label="피트 기록 선수 선택"></select><span id="pit-search-status" class="meta" role="status" aria-live="polite"></span></div>'
         '<p class="meta">피트 기록의 랩과 한국 시간을 표시합니다. 시각은 API 이벤트 기록 시각이며 정확한 진입·출구 시각은 추정하지 않습니다. 정차 시간은 stop_duration, 레인 통과 시간은 lane_duration 기준입니다. '
         "기존 pit_duration만 있는 경우 출처 필드명을 붙입니다. 서로 대체하거나 정차 시간을 추정하지 않습니다. 레인 시간에는 대기·경기 중단 등의 영향이 포함될 수 있어 타이어 교체 작업 시간과 같지 않습니다. "
         "피트 진입 기록은 타이어 교체 횟수와 다를 수 있고, 기록 없음은 실제 무정차를 단정하지 않습니다."
