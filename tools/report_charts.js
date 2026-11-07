@@ -63,12 +63,25 @@ function draw(){hideTooltip();const row=rows.find(r=>r.session===activeSession&&
   metrics.forEach(metric=>renderChart(document.getElementById('chart-'+metric[0]),row,metric));
   document.getElementById('chart-summary').textContent=row?`${activeSession} · #${row.number} ${row.name} · ${row.records}개 랩 기록`:`${activeSession} · 수집된 세션 데이터가 없습니다.`;
 }
-function selectSession(name){const previous=driverSelect.value;activeSession=name;
-  document.querySelectorAll('#session-tabs button').forEach(b=>{b.setAttribute('aria-selected',String(b.textContent===name));b.tabIndex=b.textContent===name?0:-1;});
-  driverSelect.replaceChildren();rows.filter(r=>r.session===name).forEach(r=>{const o=document.createElement('option');o.value=r.number;o.textContent=`${r.position != null ? "P"+r.position : "P—"} #${r.number} ${r.name} - ${r.team}`;driverSelect.append(o);});
+function updateDriverOptions(){
+  const previous=driverSelect.value;
+  const sessionRows=rows.filter(r=>r.session===activeSession);
+  const query=searchKey(document.getElementById('chart-search')?.value||'');
+  const matched=sessionRows.filter(r=>searchKey(r.name+' '+r.team).includes(query));
+  driverSelect.replaceChildren();
+  for(const r of matched){const o=document.createElement('option');o.value=r.number;o.textContent=`${r.position != null ? "P"+r.position : "P—"} #${r.number} ${r.name} - ${r.team}`;driverSelect.append(o);}
   if([...driverSelect.options].some(o=>o.value===previous))driverSelect.value=previous;
-  driverSelect.disabled=!driverSelect.options.length;draw();
+  driverSelect.disabled=!matched.length;
+  const status=document.getElementById('chart-search-status');
+  if(status)status.textContent=sessionRows.length?`전체 ${sessionRows.length}명 중 ${matched.length}명`:'세션 데이터 대기';
+  draw();
+  if(sessionRows.length&&!matched.length)document.getElementById('chart-summary').textContent=`${activeSession} · 검색 결과가 없습니다. 선수 이름이나 팀명을 확인해 주세요.`;
 }
+function selectSession(name){activeSession=name;
+  document.querySelectorAll('#session-tabs button').forEach(b=>{b.setAttribute('aria-selected',String(b.textContent===name));b.tabIndex=b.textContent===name?0:-1;});
+  updateDriverOptions();
+}
+
 for(const name of sessionNames){const b=document.createElement('button');b.type='button';b.setAttribute('role','tab');b.textContent=name;b.setAttribute('aria-controls','chart-panel');b.addEventListener('click',()=>selectSession(name));b.addEventListener('keydown',e=>{if(!['ArrowRight','ArrowLeft','Home','End'].includes(e.key))return;e.preventDefault();let i=sessionNames.indexOf(activeSession);const n=sessionNames.length;i=e.key==='Home'?0:e.key==='End'?n-1:(i+(e.key==='ArrowRight'?1:n-1))%n;selectSession(sessionNames[i]);tablist.children[i].focus();});tablist.append(b);}
 const teamAliases = {
   '맥라렌':'mclaren', '멕라렌':'mclaren', '맥클라렌':'mclaren',
@@ -123,4 +136,5 @@ const pagers=[...document.querySelectorAll('.result-table')].map((container,inde
 });
 const search=document.getElementById('search');if(search)search.oninput=()=>pagers.forEach(reset=>reset());
 
+const chartSearch=document.getElementById('chart-search');if(chartSearch)chartSearch.oninput=updateDriverOptions;
 driverSelect.onchange=draw;window.addEventListener('wheel',hideTooltip,{passive:true});window.addEventListener('touchmove',hideTooltip,{passive:true});window.addEventListener('resize',hideTooltip);document.addEventListener('keydown',e=>{if(e.key==='Escape')hideTooltip();});selectSession(activeSession);
