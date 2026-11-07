@@ -155,3 +155,17 @@ const search=document.getElementById('search');if(search)search.oninput=()=>page
 
 const chartSearch=document.getElementById('chart-search');if(chartSearch)chartSearch.oninput=updateDriverOptions;
 driverSelect.onchange=draw;window.addEventListener('wheel',hideTooltip,{passive:true});window.addEventListener('touchmove',hideTooltip,{passive:true});window.addEventListener('resize',hideTooltip);document.addEventListener('keydown',e=>{if(e.key==='Escape')hideTooltip();});selectSession(activeSession);
+
+// srcdoc inherits the archive URL; handle fragment links within this document.
+document.addEventListener('click',event=>{
+  const link=event.target.closest?.('a[href^="#"]');
+  if(!link)return;
+  const id=link.getAttribute('href').slice(1);
+  let target;
+  try{target=document.getElementById(decodeURIComponent(id));}catch{return;}
+  if(!target)return;
+  event.preventDefault();
+  target.scrollIntoView({block:'start',behavior:'instant'});
+  if(!target.hasAttribute('tabindex'))target.setAttribute('tabindex','-1');
+  target.focus({preventScroll:true});
+});
