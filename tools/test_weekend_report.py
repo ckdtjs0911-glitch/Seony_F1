@@ -53,6 +53,18 @@ def snapshot(name="Qualifying"):
 
 
 class ReportTests(unittest.TestCase):
+    def test_sector_values_and_missing_sectors_are_preserved(self):
+        item = snapshot()
+        item["data"]["laps"][0].update(
+            duration_sector_1=18.926,
+            duration_sector_2=35.123,
+            duration_sector_3=None,
+        )
+        lap = report.summarize(item)[0]["laps"][0]
+        self.assertEqual(lap["s1"], 18.926)
+        self.assertEqual(lap["s2"], 35.123)
+        self.assertIsNone(lap["s3"])
+
     def test_all_drivers_and_deleted_laps(self):
         rows = report.summarize(snapshot())
         self.assertEqual(len(rows), 2)
@@ -95,7 +107,7 @@ class ReportTests(unittest.TestCase):
             self.assertIn("Test &lt;Driver&gt;", text)
             self.assertIn("1:20.300", text)
             self.assertNotIn("@@", text)
-            self.assertIn('id="chart"', text)
+            self.assertIn('id="chart-time"', text)
 
     def test_failed_refresh_preserves_last_success(self):
         item = snapshot()
