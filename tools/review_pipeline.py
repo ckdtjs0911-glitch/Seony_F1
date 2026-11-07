@@ -52,7 +52,7 @@ def openai_call(key, model, prompt):
             "model": model,
             "instructions": SYSTEM,
             "input": json.dumps(prompt, ensure_ascii=False),
-            "max_output_tokens": 8000,
+            "max_output_tokens": 16000,
             "store": False,
         },
     )
@@ -67,23 +67,35 @@ def openai_call(key, model, prompt):
     return unpack(text)
 
 
+# Models that accept server-side refusal fallbacks (fallbacks: "default").
+FALLBACK_MODELS = (
+    "claude-opus-5-5",
+    "claude-opus-5",
+    "claude-fable-5-1",
+    "claude-sonnet-5-5",
+)
+
+
 def claude_call(key, model, prompt):
-    data = post_json(
-        "https://api.anthropic.com/v1/messages",
-        {
-            "x-api-key": key,
-            "anthropic-version": "2023-06-01",
-            "Content-Type": "application/json",
-        },
-        {
-            "model": model,
-            "system": SYSTEM,
-            "max_tokens": 8000,
-            "messages": [
-                {"role": "user", "content": json.dumps(prompt, ensure_ascii=False)}
-            ],
-        },
-    )
+    headers = {
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": model,
+        "system": SYSTEM,
+        # Current models think before answering; thinking counts toward max_tokens.
+        "max_tokens": 16000,
+        "messages": [
+            {"role": "user", "content": json.dumps(prompt, ensure_ascii=False)}
+        ],
+    }
+    if model in FALLBACK_MODELS:
+        # On a safety-classifier refusal the API retries on its recommended model.
+        headers["anthropic-beta"] = "server-side-fallback-2026-07-01"
+        payload["fallbacks"] = "default"
+    data = post_json("https://api.anthropic.com/v1/messages", headers, payload)
     if data.get("stop_reason") != "end_turn":
         raise ValueError("Claude response did not complete")
     return unpack(
@@ -321,8 +333,8 @@ def process(staging, destination, optional=False):
         "anthropic": os.environ.get("ANTHROPIC_API_KEY"),
     }
     models = {
-        "codex": os.environ.get("REPORT_CODEX_MODEL") or "gpt-5.1-codex",
-        "claude": os.environ.get("REPORT_CLAUDE_MODEL") or "claude-sonnet-4-5",
+        "codex": os.environ.get("REPORT_CODEX_MODEL") or "gpt-6.1-sol",
+        "claude": os.environ.get("REPORT_CLAUDE_MODEL") or "claude-opus-5-5",
     }
     directories = sorted(staging.glob("weekend-*"))
     if not directories:

@@ -253,6 +253,46 @@ class PipelineTests(unittest.TestCase):
                 report.load_json(final_dir / "editorial-review.json")["approved"]
             )
 
+    def test_claude_request_opts_into_refusal_fallback(self):
+        self.assertEqual(
+            set(pipeline.FALLBACK_MODELS),
+            {"claude-opus-5-5", "claude-opus-5", "claude-fable-5-1", "claude-sonnet-5-5"},
+        )
+        response = {
+            "stop_reason": "end_turn",
+            "content": [
+                {"type": "thinking", "thinking": ""},
+                {"type": "text", "text": json.dumps(self.document)},
+            ],
+        }
+        with patch.object(pipeline, "post_json", return_value=response) as post:
+            for model in pipeline.FALLBACK_MODELS:
+                self.assertEqual(pipeline.claude_call("key", model, {}), self.document)
+                _, headers, payload = post.call_args.args
+                self.assertEqual(
+                    headers["anthropic-beta"], "server-side-fallback-2026-07-01"
+                )
+                self.assertEqual(payload["fallbacks"], "default")
+                self.assertEqual(payload["max_tokens"], 16000)
+            pipeline.claude_call("key", "claude-haiku-5-5", {})
+            _, headers, payload = post.call_args.args
+            self.assertNotIn("anthropic-beta", headers)
+            self.assertNotIn("fallbacks", payload)
+
+    def test_default_models_are_current(self):
+        with patch.dict(pipeline.os.environ, {}, clear=True), patch.object(
+            pipeline, "review", side_effect=RuntimeError("stop")
+        ) as review, tempfile.TemporaryDirectory() as folder:
+            candidate = Path(folder) / "staging" / "weekend-2"
+            report.save_json(candidate / "data" / "1.json", snapshot())
+            report.render(
+                report.load_offline(candidate), candidate / "weekend-report.html"
+            )
+            with self.assertRaises(RuntimeError):
+                pipeline.process(Path(folder) / "staging", Path(folder) / "reports")
+            models = review.call_args.args[2]
+        self.assertEqual(models, {"codex": "gpt-6.1-sol", "claude": "claude-opus-5-5"})
+
     def test_provider_outputs_are_parsed(self):
         response = {
             "status": "completed",
@@ -264,8 +304,9 @@ class PipelineTests(unittest.TestCase):
                 }
             ],
         }
-        with patch.object(pipeline, "post_json", return_value=response):
+        with patch.object(pipeline, "post_json", return_value=response) as post:
             self.assertEqual(pipeline.openai_call("key", "model", {}), self.document)
+            self.assertEqual(post.call_args.args[2]["max_output_tokens"], 16000)
         response = {
             "stop_reason": "end_turn",
             "content": [{"type": "text", "text": json.dumps(self.document)}],

@@ -89,8 +89,9 @@ API로 실행합니다. Windows에서 로그인한 Claude Code 프로그램을 �
 
 키 값은 채팅·코드·커밋에 넣지 않습니다. 현재 클라우드 환경이 아닌 **GitHub 저장소의
 Actions secrets**에 설정해야 예약 작업에서 사용할 수 있습니다.
-모델은 기본 `gpt-5.1-codex`, `claude-sonnet-4-5`를 사용하며, 계정에서 접근 가능한 모델로
+모델은 기본 `gpt-6.1-sol`(Codex), `claude-opus-5-5`(Claude)를 사용하며, 계정에서 접근 가능한 모델로
 바꾸려면 Actions variables에 `REPORT_CODEX_MODEL`, `REPORT_CLAUDE_MODEL`을 설정합니다.
+Claude 기본 모델은 안전 분류기가 요청을 거절하면 Anthropic이 권장하는 다른 모델로 서버에서 다시 실행합니다(`fallbacks: "default"`).
 키가 없으면 AI 첨삭을 건너뛰고 기본 보고서를 정상 저장합니다. 인증 오류·API 한도·모델 거부·
 출력 검증 실패 시에도 첨삭 전 기본 보고서를 저장하고 상태를 명시합니다. 키를 추가하면
 다음 실행부터 AI 첨삭이 적용됩니다. OpenF1 수집 자체가 실패한 경우에는 기존 보고서를 유지합니다.
