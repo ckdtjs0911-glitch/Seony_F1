@@ -12,6 +12,43 @@ from test_weekend_report import snapshot
 
 
 class PipelineTests(unittest.TestCase):
+    def test_optional_missing_keys_promotes_base_without_provider_calls(self):
+        self.check_optional_fallback(missing=True)
+
+    def test_optional_provider_failure_promotes_base_without_ai_claim(self):
+        self.check_optional_fallback(missing=False)
+
+    def check_optional_fallback(self, missing):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            candidate = root / "staging" / "weekend-2"
+            report.save_json(candidate / "data" / "1.json", snapshot())
+            report.render(
+                report.load_offline(candidate), candidate / "weekend-report.html"
+            )
+            keys = (
+                {}
+                if missing
+                else {"OPENAI_API_KEY": "test", "ANTHROPIC_API_KEY": "test"}
+            )
+            with patch.dict(pipeline.os.environ, keys, clear=True), patch.object(
+                pipeline, "openai_call", side_effect=RuntimeError("provider offline")
+            ) as provider:
+                pipeline.process(root / "staging", root / "reports", optional=True)
+                if missing:
+                    provider.assert_not_called()
+            final_dir = root / "reports" / "weekend-2"
+            page = (final_dir / "weekend-report.html").read_text(encoding="utf-8")
+            self.assertIn('id="ai-review-status"', page)
+            self.assertNotIn('id="ai-editorial"', page)
+            self.assertIn('id="chart-time"', page)
+            audit = report.load_json(final_dir / "editorial-review.json")
+            self.assertIs(audit["approved"], False)
+            self.assertEqual(
+                audit["status"],
+                "skipped_missing_keys" if missing else "failed_optional",
+            )
+
     def setUp(self):
         self.snapshots = [snapshot()]
         self.facts = pipeline.facts_for(self.snapshots)

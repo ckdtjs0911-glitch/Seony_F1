@@ -297,7 +297,7 @@ def inject(page, audit, facts):
     return page.replace("</header>", "</header>" + section, 1)
 
 
-def process(staging, destination):
+def process(staging, destination, optional=False):
     keys = {
         "openai": os.environ.get("OPENAI_API_KEY"),
         "anthropic": os.environ.get("ANTHROPIC_API_KEY"),
@@ -314,25 +314,55 @@ def process(staging, destination):
         snapshots = report.load_offline(directory)
         cache_path = destination / directory.name / "editorial-review.json"
         cached = report.load_json(cache_path) if cache_path.exists() else None
-        audit = review(snapshots, keys, models, cached)
         page_path = directory / "weekend-report.html"
-        page_path.write_text(
-            inject(page_path.read_text(encoding="utf-8"), audit, facts_for(snapshots)),
-            encoding="utf-8",
-        )
+        page = page_path.read_text(encoding="utf-8")
+        try:
+            audit = review(snapshots, keys, models, cached)
+            final_page = inject(page, audit, facts_for(snapshots))
+        except (ValueError, RuntimeError, requests.RequestException) as exc:
+            if not optional:
+                raise
+            missing = not keys.get("openai") or not keys.get("anthropic")
+            status = "skipped_missing_keys" if missing else "failed_optional"
+            message = (
+                "API 키 미설정으로 AI 첨삭을 건너뛴 기본 보고서입니다."
+                if missing
+                else "AI 첨삭에 실패하여 기본 보고서를 제공합니다."
+            )
+            audit = {
+                "version": VERSION,
+                "approved": False,
+                "status": status,
+                "error_type": type(exc).__name__,
+                "generated_at": report.datetime.now(report.timezone.utc).isoformat(),
+            }
+            if page.count("</header>") != 1:
+                raise ValueError("Unexpected HTML template")
+            final_page = page.replace(
+                "</header>",
+                '</header><p id="ai-review-status" class="meta">' + message + "</p>",
+                1,
+            )
+            print(f"AI review {status}; using base report: {directory.name}")
+        page_path.write_text(final_page, encoding="utf-8")
         report.save_json(directory / "editorial-review.json", audit)
     for directory in directories:
         shutil.copytree(directory, destination / directory.name, dirs_exist_ok=True)
-        print(f"Reviewed report ready: {directory.name}/weekend-report.html")
+        print(f"Report ready: {directory.name}/weekend-report.html")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--staging", type=Path, required=True)
     parser.add_argument("--destination", type=Path, default=report.ROOT / "reports")
+    parser.add_argument(
+        "--optional",
+        action="store_true",
+        help="Save base reports when AI keys are missing or review fails",
+    )
     args = parser.parse_args()
     try:
-        process(args.staging, args.destination)
+        process(args.staging, args.destination, optional=args.optional)
         return 0
     except (ValueError, RuntimeError, requests.RequestException) as exc:
         # No provider response body or secret value is printed.
