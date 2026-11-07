@@ -79,6 +79,11 @@ def build(root, since=None):
                 path = Path(folder) / "report.html"
                 report.render([snapshot], path)
                 page = path.read_text(encoding="utf-8")
+                page = page.replace(
+                    "<body>",
+                    f'<body data-session-view="true" data-session-label="{report.esc(label)}">',
+                    1,
+                )
                 a = page.index("<h1>")
                 b = page.index("</h1>", a)
                 title = report.esc(f"{year} {gp} · {label}")
@@ -86,7 +91,7 @@ def build(root, since=None):
                 entry["payload"] = base64.b64encode(
                     gzip.compress(page.encode("utf-8"))
                 ).decode()
-                entry["status"] = "보고서 데이터 수집 완료"
+                entry["status"] = snapshot.get("status", "보고서 데이터 수집 완료")
             elif session.get("is_cancelled"):
                 entry["status"] = "취소"
             elif report.stamp(session["date_end"]) > now:

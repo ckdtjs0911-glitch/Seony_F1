@@ -30,7 +30,9 @@ ENDPOINTS = (
 )
 
 
-def run(root, reports, since=None, session_key=None, max_sessions=None):
+def run(
+    root, reports, since=None, session_key=None, max_sessions=None, telemetry_only=False
+):
     root.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(root / "manifest.sqlite")
     db.execute(
@@ -118,43 +120,51 @@ def run(root, reports, since=None, session_key=None, max_sessions=None):
         print(f"{job}: {len(value)} records, {len(raw)} compressed bytes", flush=True)
         return value
 
-    for index, session in enumerate(sessions, 1):
+    from build_archive import build
+
+    # Phase one makes all reportable sessions available before large telemetry.
+    for index, session in enumerate([] if telemetry_only else sessions, 1):
         if session.get("year", 0) < first_year():
             prune(reports, root)
             continue
         key = session["session_key"]
         report.save_json(root / str(key) / "session.json", session)
-        print(
-            f'SESSION {index}/{len(sessions)}: {session["year"]} {session["location"]} {session["session_name"]} ({key})',
-            flush=True,
-        )
-        data = {}
-        for endpoint in ENDPOINTS:
+        print(f"REPORT {index}/{len(sessions)}: {key}", flush=True)
+        data, unavailable = {}, []
+        for endpoint in report.ENDPOINTS:
             value = download(key, endpoint)
-            if value is not None:
-                data[endpoint] = value
-            # Report data is available before optional datasets/telemetry finish.
-            if all(name in data for name in report.ENDPOINTS):
-                snapshot = {
+            if value is None:
+                unavailable.append(endpoint)
+            data[endpoint] = value or []
+        if data["drivers"] or data["laps"] or data["session_result"]:
+            status = "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
+            if unavailable:
+                status = "부분 수집 · API 미제공: " + ", ".join(unavailable)
+            report.save_json(
+                reports / f'weekend-{session["meeting_key"]}' / "data" / f"{key}.json",
+                {
                     "session": session,
-                    "status": "수집 완료 (보고서 데이터 / 텔레메트리는 별도 원본)",
+                    "status": status,
                     "fetched_at": now.isoformat(),
-                    "data": {name: data[name] for name in report.ENDPOINTS},
-                }
-                report.save_json(
-                    reports
-                    / f'weekend-{session["meeting_key"]}'
-                    / "data"
-                    / f"{key}.json",
-                    snapshot,
-                )
-        for driver in data.get("drivers", []):
+                    "data": data,
+                },
+            )
+        if index % 5 == 0 or index == len(sessions):
+            build(reports, since)
+    for index, session in enumerate(sessions, 1):
+        if session.get("year", 0) < first_year():
+            prune(reports, root)
+            continue
+        key = session["session_key"]
+        print(f"TELEMETRY {index}/{len(sessions)}: {key}", flush=True)
+        for endpoint in ENDPOINTS:
+            if endpoint not in report.ENDPOINTS:
+                download(key, endpoint)
+        drivers = download(key, "drivers") or []
+        for driver in drivers:
             for endpoint in ("car_data", "location"):
                 download(key, endpoint, driver["driver_number"])
         print(f"SESSION COMPLETE: {key}", flush=True)
-        from build_archive import build
-
-        build(reports, since)
     db.close()
 
 
@@ -165,9 +175,17 @@ def main():
     p.add_argument("--reports", type=Path, default=report.ROOT / "reports")
     p.add_argument("--session", type=int)
     p.add_argument("--max-sessions", type=int)
+    p.add_argument("--telemetry-only", action="store_true")
     args = p.parse_args()
     try:
-        run(args.raw_root, args.reports, args.since, args.session, args.max_sessions)
+        run(
+            args.raw_root,
+            args.reports,
+            args.since,
+            args.session,
+            args.max_sessions,
+            args.telemetry_only,
+        )
     except (requests.RequestException, RuntimeError, ValueError) as exc:
         print(
             f"Stopped; downloaded files preserved: {exc}", file=sys.stderr, flush=True

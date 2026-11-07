@@ -1,5 +1,5 @@
 const rows = REPORT_ROWS;
-const sessionNames = [...new Set(['프랙티스 1','프랙티스 2','프랙티스 3','퀄리파잉','레이스',...rows.map(r=>r.session)])];
+const sessionNames = [...new Set([...(document.body.dataset.sessionView ? [document.body.dataset.sessionLabel] : ['프랙티스 1','프랙티스 2','프랙티스 3','퀄리파잉','레이스']),...rows.map(r=>r.session)])];
 const tablist = document.getElementById('session-tabs');
 const driverSelect = document.getElementById('chart-driver');
 const tooltip = document.getElementById('chart-tooltip');

@@ -53,6 +53,17 @@ def snapshot(name="Qualifying"):
 
 
 class ReportTests(unittest.TestCase):
+    def test_non_numeric_classification_does_not_break_sorting(self):
+        item = snapshot()
+        item["data"]["session_result"][0]["position"] = "RT"
+        rows = report.summarize(item)
+        driver = next(row for row in rows if row["number"] == 1)
+        self.assertIsNone(driver["position"])
+        self.assertEqual(driver["classification"], "RT")
+        self.assertEqual(driver["status"], "API 분류 RT")
+        self.assertEqual(report.numeric_position("2"), 2)
+        self.assertIsNone(report.numeric_position("RT"))
+
     def test_tyre_mapping_boundaries_missing_and_conflicts(self):
         stints = [
             {"lap_start": 1, "lap_end": 5, "compound": "SOFT"},

@@ -103,6 +103,20 @@ def deleted_laps(messages):
     return deleted
 
 
+def numeric_position(value):
+    if isinstance(value, bool):
+        return None
+    try:
+        numeric = int(value)
+    except (TypeError, ValueError):
+        return None
+    return (
+        numeric
+        if str(value) in (str(numeric), f"{numeric}.0") and numeric > 0
+        else None
+    )
+
+
 def result_status(result):
     if result.get("dsq"):
         return "DSQ"
@@ -110,6 +124,12 @@ def result_status(result):
         return "DNS"
     if result.get("dnf"):
         return "DNF"
+    if (
+        result
+        and result.get("position") is not None
+        and numeric_position(result["position"]) is None
+    ):
+        return f"API 분류 {result['position']}"
     return "기록 있음" if result else "결과 대기"
 
 
@@ -250,7 +270,8 @@ def summarize(snapshot):
                 "number": number,
                 "name": driver.get("full_name", f"Driver {number}"),
                 "team": driver.get("team_name", "팀 정보 없음"),
-                "position": result.get("position"),
+                "position": numeric_position(result.get("position")),
+                "classification": result.get("position"),
                 "status": result_status(result),
                 "completed": result.get("number_of_laps"),
                 "points": result.get("points"),
