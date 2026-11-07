@@ -9,6 +9,24 @@ from retention import first_year, prune
 
 
 class RetentionTests(unittest.TestCase):
+    def test_reference_images_expire_with_their_year(self):
+        with tempfile.TemporaryDirectory() as folder:
+            reports = Path(folder)
+            assets = reports / "attachments"
+            assets.mkdir()
+            entries = [
+                {"year": year, "filename": f"{year}.png"} for year in (2026, 2027)
+            ]
+            (assets / "manifest.json").write_text(json.dumps(entries))
+            for entry in entries:
+                (assets / entry["filename"]).write_bytes(b"fixture")
+            prune(reports, now=datetime(2029, 1, 1, tzinfo=timezone.utc))
+            self.assertFalse((assets / "2026.png").exists())
+            self.assertTrue((assets / "2027.png").exists())
+            self.assertEqual(
+                json.loads((assets / "manifest.json").read_text()), entries[1:]
+            )
+
     def test_korean_new_year_window(self):
         self.assertEqual(
             first_year(datetime(2026, 12, 31, 14, 59, tzinfo=timezone.utc)), 2024

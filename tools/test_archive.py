@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 import build_archive
 import weekend_report as report
@@ -12,6 +13,32 @@ from test_weekend_report import snapshot
 
 
 class ArchiveTests(unittest.TestCase):
+    def test_repeated_reference_image_is_stored_once(self):
+        year = datetime.now(timezone.utc).year
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            assets = root / "attachments"
+            assets.mkdir()
+            (assets / "shared.png").write_bytes(b"shared-test-image")
+            report.save_json(
+                assets / "manifest.json",
+                [{"year": year, "title": "참고 이미지", "filename": "shared.png"}],
+            )
+            for key in (1, 2):
+                item = snapshot("Race")
+                item["session"].update(year=year, session_key=key)
+                report.save_json(root / "weekend-2" / "data" / f"{key}.json", item)
+            with patch("race_attachments.ATTACHMENTS", assets):
+                build_archive.build(root)
+            page = (root / "index.html").read_text(encoding="utf-8")
+            self.assertEqual(page.count("data:image/png;base64,"), 1)
+            entries = json.loads(
+                page.split("const entries=", 1)[1].split(";const year=", 1)[0]
+            )
+            self.assertEqual(
+                entries[0]["attachment_assets"], entries[1]["attachment_assets"]
+            )
+
     def test_annual_report_contains_only_current_year_with_identical_data(self):
         current_year = datetime.now(timezone.utc).year
         with tempfile.TemporaryDirectory() as folder:

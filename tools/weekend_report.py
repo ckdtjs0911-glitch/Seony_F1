@@ -13,6 +13,7 @@ from pathlib import Path
 import requests
 
 from race_events import render_race_events
+from race_attachments import render_race_attachments
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from openf1.util import openf1_client  # noqa: E402
@@ -480,6 +481,7 @@ def render(snapshots, output, now=None):
             render_table(name, rows) + render_verdicts(name, rows) + render_stints(rows)
         )
         body += render_race_events(item, rows)
+        body += render_race_attachments(item)
         chart_data.extend(dict(row, session=label) for row in rows)
         sections.append(body)
     location = next(

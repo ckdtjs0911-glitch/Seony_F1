@@ -213,6 +213,7 @@ def fingerprint(snapshots):
         "review_pipeline.py",
         "weekend_report.py",
         "race_events.py",
+        "race_attachments.py",
         "report_charts.js",
         "report_charts.css",
     ):

@@ -86,6 +86,25 @@ def prune(reports, raw=None, now=None):
                     db.execute(
                         "DELETE FROM downloads WHERE job LIKE ?", (str(key) + "/%",)
                     )
+    attachment_manifest = reports / "attachments" / "manifest.json"
+    if attachment_manifest.exists():
+        attachments = read(attachment_manifest)
+        retained_attachments = [item for item in attachments if item["year"] >= cutoff]
+        retained_names = {item["filename"] for item in retained_attachments}
+        for item in attachments:
+            name = item["filename"]
+            if item["year"] < cutoff and name not in retained_names:
+                if "/" in name or "\\" in name:
+                    raise ValueError("Attachment filename must be a basename")
+                path = attachment_manifest.parent / name
+                if path.is_file():
+                    path.unlink()
+                    removed.append(str(path))
+        if len(attachments) != len(retained_attachments):
+            attachment_manifest.write_text(
+                json.dumps(retained_attachments, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
     for name in ["sessions.json", "meetings.json", "archive-index.json"]:
         path = reports / "catalog" / name
         if path.exists():
