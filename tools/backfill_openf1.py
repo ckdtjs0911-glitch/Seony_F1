@@ -1,4 +1,4 @@
-"""Resumable full OpenF1 JSON archive, including per-driver telemetry (2025+)."""
+"""Resumable full OpenF1 JSON archive, including per-driver telemetry (rolling three years)."""
 import argparse
 import gzip
 import hashlib
@@ -10,6 +10,7 @@ from pathlib import Path
 
 import requests
 import weekend_report as report
+from retention import first_year, prune
 
 ENDPOINTS = (
     "drivers",
@@ -29,7 +30,7 @@ ENDPOINTS = (
 )
 
 
-def run(root, reports, since=2025, session_key=None, max_sessions=None):
+def run(root, reports, since=None, session_key=None, max_sessions=None):
     root.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(root / "manifest.sqlite")
     db.execute(
@@ -43,6 +44,8 @@ def run(root, reports, since=2025, session_key=None, max_sessions=None):
         else:
             catalogs[endpoint] = report.fetch(endpoint, {})
             report.save_json(path, catalogs[endpoint])
+    prune(reports, root)
+    since = max(since or first_year(), first_year())
     now = datetime.now(timezone.utc)
     sessions = [
         s
@@ -116,7 +119,11 @@ def run(root, reports, since=2025, session_key=None, max_sessions=None):
         return value
 
     for index, session in enumerate(sessions, 1):
+        if session.get("year", 0) < first_year():
+            prune(reports, root)
+            continue
         key = session["session_key"]
+        report.save_json(root / str(key) / "session.json", session)
         print(
             f'SESSION {index}/{len(sessions)}: {session["year"]} {session["location"]} {session["session_name"]} ({key})',
             flush=True,
@@ -153,7 +160,7 @@ def run(root, reports, since=2025, session_key=None, max_sessions=None):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--since", type=int, default=2025)
+    p.add_argument("--since", type=int, default=None)
     p.add_argument("--raw-root", type=Path, default=report.ROOT.parent / "openf1-data")
     p.add_argument("--reports", type=Path, default=report.ROOT / "reports")
     p.add_argument("--session", type=int)

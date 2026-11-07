@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import weekend_report as report
+from retention import first_year, prune
 
 COUNTRIES = {
     "Australia": "호주",
@@ -36,7 +37,9 @@ COUNTRIES = {
 }
 
 
-def build(root, since=2025):
+def build(root, since=None):
+    prune(root)
+    since = max(since or first_year(), first_year())
     catalog_path = root / "catalog" / "sessions.json"
     sessions = report.load_json(catalog_path) if catalog_path.exists() else []
     snapshots = {}
@@ -115,6 +118,6 @@ for(const y of [...new Set(entries.map(x=>x.year))].sort((a,b)=>b-a))option(year
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reports", type=Path, default=report.ROOT / "reports")
-    parser.add_argument("--since", type=int, default=2025)
+    parser.add_argument("--since", type=int, default=None)
     args = parser.parse_args()
     build(args.reports, args.since)
