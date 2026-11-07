@@ -65,7 +65,7 @@ function draw(){hideTooltip();const row=rows.find(r=>r.session===activeSession&&
 }
 function selectSession(name){const previous=driverSelect.value;activeSession=name;
   document.querySelectorAll('#session-tabs button').forEach(b=>{b.setAttribute('aria-selected',String(b.textContent===name));b.tabIndex=b.textContent===name?0:-1;});
-  driverSelect.replaceChildren();rows.filter(r=>r.session===name).forEach(r=>{const o=document.createElement('option');o.value=r.number;o.textContent=`#${r.number} ${r.name}`;driverSelect.append(o);});
+  driverSelect.replaceChildren();rows.filter(r=>r.session===name).forEach(r=>{const o=document.createElement('option');o.value=r.number;o.textContent=`${r.position != null ? "P"+r.position : "P—"} #${r.number} ${r.name}`;driverSelect.append(o);});
   if([...driverSelect.options].some(o=>o.value===previous))driverSelect.value=previous;
   driverSelect.disabled=!driverSelect.options.length;draw();
 }
