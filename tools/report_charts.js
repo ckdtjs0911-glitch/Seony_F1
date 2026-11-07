@@ -68,11 +68,11 @@ function draw(){hideTooltip();const row=rows.find(r=>r.session===activeSession&&
   if(!title){title=document.createElement('span');title.className='lap-count-title';heading.firstChild.replaceWith(title);}
   const completed=row&&Number.isInteger(row.completed)?row.completed:null;
   const count=completed ?? row?.records;
-  title.textContent=activeSession.startsWith('프랙티스')&&row?`랩타임(총 ${count}랩${completed===null?' · 기록 기준':''})`:'랩타임';
+  title.textContent=(activeSession.startsWith('프랙티스')||isQualifying())&&row?`랩타임(총 ${count}랩${completed===null?' · 기록 기준':''})`:'랩타임';
 
   const selectedPhase=isQualifying()?phaseSelect.value:'all';
   const filtered=row?{...row,laps:phaseLaps(row)}:null;
-  if(isQualifying()&&selectedPhase!=='all')title.textContent='랩타임 · '+(selectedPhase==='unknown'?'미구분':'Q'+selectedPhase);
+  if(isQualifying()&&selectedPhase!=='all'){title.textContent=`랩타임(총 ${filtered?.laps.length||0}랩) · `+(selectedPhase==='unknown'?'미구분':'Q'+selectedPhase);title.title='선택한 단계로 구분된 관측 랩 수입니다.';}else{title.removeAttribute('title');}
   const official=document.getElementById('qualifying-record');official.hidden=!isQualifying();
   if(isQualifying()){const record=row&&['1','2','3'].includes(selectedPhase)?row.q[+selectedPhase-1]:null;official.textContent=['1','2','3'].includes(selectedPhase)?`Q${selectedPhase} 공식 기록: ${Number.isFinite(record)&&record>0?precise(record,'time'):'기록 없음 / 미제공'} · 차트는 단계 시작 메시지와 랩 시작 시각 기준이며, 구분 불가능한 랩은 미구분입니다.`:'Q1·Q2·Q3를 선택하면 해당 단계 공식 기록과 랩·섹터 차트를 표시합니다. 미구분 랩은 임의 배정하지 않습니다.';}
   metrics.forEach(metric=>renderChart(document.getElementById('chart-'+metric[0]),filtered,metric));
