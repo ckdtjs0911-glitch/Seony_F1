@@ -62,6 +62,7 @@ jobs:
           path: |
             reports/weekend-*/
             reports/index.html
+            reports/current-year.html
             reports/catalog/
           if-no-files-found: ignore
           retention-days: 30
