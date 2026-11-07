@@ -3624,7 +3624,8 @@
     "gp": "브라질 그랑프리 · Interlagos",
     "session": "프랙티스 3",
     "date": "2026-11-07T14:30:00+00:00",
-    "status": "예정 / 진행 중"
+    "attachment_assets": [],
+    "status": "수집 완료 (OpenF1 기준)"
   },
   {
     "year": 2026,
@@ -3633,7 +3634,8 @@
     "gp": "브라질 그랑프리 · Interlagos",
     "session": "퀄리파잉",
     "date": "2026-11-07T18:00:00+00:00",
-    "status": "예정 / 진행 중"
+    "attachment_assets": [],
+    "status": "수집 완료 (OpenF1 기준)"
   },
   {
     "year": 2026,
