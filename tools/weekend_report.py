@@ -129,6 +129,51 @@ def format_gap(gap):
     return "—" if gap is None else gap
 
 
+def tyre_for_lap(stints, lap_number):
+    """Only explicit, unambiguous stint ranges establish a lap's tyre."""
+    compounds = {
+        str(stint.get("compound") or "UNKNOWN").upper()
+        for stint in stints
+        if isinstance(stint.get("lap_start"), int)
+        and isinstance(stint.get("lap_end"), int)
+        and stint["lap_start"] <= lap_number <= stint["lap_end"]
+    }
+    return compounds.pop() if len(compounds) == 1 else "UNKNOWN"
+
+
+def render_verdicts(name, rows):
+    available = [row["fastest"] for row in rows if row["fastest"] is not None]
+    best = min(available) if available else None
+    lines = []
+    for row in rows:
+        if row["status"] in ("DNF", "DNS", "DSQ"):
+            text = f"{row['status']}로 기록됐으며, 완료 랩은 {row['completed'] if row['completed'] is not None else '미확인'}랩입니다."
+        elif row["fastest"] is None:
+            text = "유효한 관측 랩타임이 없어 페이스 평가는 보류합니다."
+        elif name == "Race":
+            rank = (
+                f"API 결과 P{row['position']}"
+                if row["position"] is not None
+                else "API 순위 미제공"
+            )
+            text = f"{rank} · 관측 최속 {seconds(row['fastest'])}, 피트 레인 진입 {row['pits']}회가 기록됐습니다."
+        else:
+            delta = row["fastest"] - best
+            assessment = "관측 최속 기준 선두" if delta == 0 else f"세션 관측 최속보다 {delta:.3f}초 느림"
+            text = f"{assessment} · 최속 {seconds(row['fastest'])}, {row['records']}개 랩 기록으로 비교한 결과입니다."
+        rank = row["position"] if row["position"] is not None else "—"
+        search = esc((row["name"] + " " + row["team"]).lower())
+        lines.append(
+            f'<tr data-search="{search}"><td>{rank}</td><td><b>#{row["number"]} {esc(row["name"])}</b><small>{esc(row["team"])}</small></td><td class="verdict-text">{esc(text)}</td></tr>'
+        )
+    return (
+        '<h3>선수별 한줄 평</h3><p class="meta">관측 기록에 근거한 자동 요약입니다. 연료량·타이어·트래픽을 보정한 실력 평가는 아닙니다. 10명씩 넘겨 볼 수 있습니다.</p>'
+        '<div class="scroll result-table driver-verdict-table"><table><thead><tr><th>API 순위</th><th>드라이버 / 팀</th><th>기록 기반 한줄 평</th></tr></thead><tbody>'
+        + "".join(lines)
+        + "</tbody></table></div>"
+    )
+
+
 def summarize(snapshot):
     data = snapshot["data"]
     drivers = {x["driver_number"]: x for x in data.get("drivers", [])}
@@ -227,6 +272,7 @@ def summarize(snapshot):
                         "s1": x.get("duration_sector_1"),
                         "s2": x.get("duration_sector_2"),
                         "s3": x.get("duration_sector_3"),
+                        "tyre": tyre_for_lap(stints, x["lap_number"]),
                         "deleted": (number, x["lap_number"]) in deleted,
                     }
                     for x in laps
@@ -325,7 +371,7 @@ METHODOLOGY = (
 CHART_CSS = ROOT / "tools" / "report_charts.css"
 CHART_JS = ROOT / "tools" / "report_charts.js"
 
-CHART_SECTION = """<section class="chart-workspace"><div class="chart-kicker">SESSION TELEMETRY</div><h2>랩타임 &amp; 섹터 분석</h2><div id="session-tabs" class="session-tabs" role="tablist" aria-label="세션 선택"></div><div id="chart-panel" role="tabpanel"><div class="chart-toolbar"><label for="chart-driver">드라이버 선택</label><select id="chart-driver"></select></div><p id="chart-summary" class="chart-caption"></p><article class="chart-card"><h3>랩타임 <small>점에 마우스를 올리거나 터치하면 0.001초 단위 기록이 표시됩니다</small></h3><div class="scroll"><svg id="chart-time" viewBox="0 0 1100 320" role="img" aria-label="랩타임 차트"></svg></div></article><h3 class="sector-heading">섹터별 선수 시간</h3><p class="sector-hint">같은 세션·드라이버의 섹터 1·2·3 기록입니다. 기록이 없는 랩 앞뒤는 선으로 잇지 않습니다.</p><article class="chart-card"><h3>섹터 1</h3><div class="scroll"><svg id="chart-s1" viewBox="0 0 1100 320" role="img" aria-label="섹터 1 차트"></svg></div></article><article class="chart-card"><h3>섹터 2</h3><div class="scroll"><svg id="chart-s2" viewBox="0 0 1100 320" role="img" aria-label="섹터 2 차트"></svg></div></article><article class="chart-card"><h3>섹터 3</h3><div class="scroll"><svg id="chart-s3" viewBox="0 0 1100 320" role="img" aria-label="섹터 3 차트"></svg></div></article></div><p class="chart-caption">빨간 점은 race_control에서 삭제가 확인된 랩입니다 · 키보드 Tab으로 점을 선택할 수 있습니다 · 느린 랩도 생략하지 않고 표시합니다</p></section><div id="chart-tooltip" class="chart-tooltip" role="status" aria-live="polite" hidden></div>"""
+CHART_SECTION = """<section class="chart-workspace"><div class="chart-kicker">SESSION TELEMETRY</div><h2>랩타임 &amp; 섹터 분석</h2><div id="session-tabs" class="session-tabs" role="tablist" aria-label="세션 선택"></div><div id="chart-panel" role="tabpanel"><div class="chart-toolbar"><label for="chart-driver">드라이버 선택</label><select id="chart-driver"></select></div><p id="chart-summary" class="chart-caption"></p><article class="chart-card"><h3>랩타임 <small>점에 마우스를 올리거나 터치하면 0.001초 단위 기록이 표시됩니다</small></h3><div class="scroll"><svg id="chart-time" viewBox="0 0 1100 320" role="img" aria-label="랩타임 차트"></svg></div></article><h3 class="sector-heading">섹터별 선수 시간</h3><p class="sector-hint">같은 세션·드라이버의 섹터 1·2·3 기록입니다. 기록이 없는 랩 앞뒤는 선으로 잇지 않습니다. 타이어는 스틴트의 명시된 랩 범위로 연결하며, 범위가 겹치거나 없으면 미확인입니다.</p><article class="chart-card"><h3>섹터 1</h3><div class="scroll"><svg id="chart-s1" viewBox="0 0 1100 320" role="img" aria-label="섹터 1 차트"></svg></div></article><article class="chart-card"><h3>섹터 2</h3><div class="scroll"><svg id="chart-s2" viewBox="0 0 1100 320" role="img" aria-label="섹터 2 차트"></svg></div></article><article class="chart-card"><h3>섹터 3</h3><div class="scroll"><svg id="chart-s3" viewBox="0 0 1100 320" role="img" aria-label="섹터 3 차트"></svg></div></article></div><p class="chart-caption">점 색상은 사용 타이어를 나타내며, 빨간 테두리는 삭제가 확인된 랩입니다 · 키보드 Tab으로 점을 선택할 수 있습니다 · 느린 랩도 생략하지 않고 표시합니다</p></section><div id="chart-tooltip" class="chart-tooltip" role="status" aria-live="polite" hidden></div>"""
 
 
 def render(snapshots, output, now=None):
@@ -357,7 +403,9 @@ def render(snapshots, output, now=None):
                 body + "<p>아직 수집된 데이터가 없습니다. 세션이 열리지 않았거나 데이터 제공을 기다리는 중입니다.</p>"
             )
             continue
-        body += render_table(name, rows) + render_stints(rows)
+        body += (
+            render_table(name, rows) + render_verdicts(name, rows) + render_stints(rows)
+        )
         chart_data.extend(dict(row, session=label) for row in rows)
         sections.append(body)
     location = next(

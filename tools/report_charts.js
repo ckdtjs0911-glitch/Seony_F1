@@ -5,6 +5,15 @@ const driverSelect = document.getElementById('chart-driver');
 const tooltip = document.getElementById('chart-tooltip');
 const metrics = [['time','랩타임','#6deac9'],['s1','섹터 1','#83b7ff'],['s2','섹터 2','#c6a0ff'],['s3','섹터 3','#ffce80']];
 let activeSession = sessionNames.find(s => rows.some(r => r.session === s)) || sessionNames[0];
+const tyres = {
+  HARD: ['H','하드','#ffffff'], MEDIUM: ['M','미디엄','#ffe34d'], SOFT: ['S','소프트','#ff4f5e'],
+  INTERMEDIATE: ['I','인터미디어트','#52d983'], WET: ['W','웨트','#58a6ff'],
+  UNKNOWN: ['?','미확인','#9aaabd']
+};
+function tyreInfo(lap){return tyres[lap.tyre] || tyres.UNKNOWN;}
+const legend=document.createElement('div');legend.className='tyre-legend';legend.setAttribute('aria-label','사용 타이어 범례');
+for(const [code,label,color] of Object.values(tyres)){const badge=document.createElement('span');badge.style.setProperty('--tyre',color);badge.textContent=code+' · '+label;legend.append(badge);}
+document.getElementById('chart-summary').after(legend);
 function precise(value, key) {
   if (!Number.isFinite(value)) return '기록 없음';
   return key === 'time' ? `${Math.floor(value/60)}:${(value%60).toFixed(3).padStart(6,'0')} (${value.toFixed(3)}초)` : `${value.toFixed(3)}초`;
@@ -16,6 +25,10 @@ function showTooltip(event, lap, metric, row) {
   const title=document.createElement('strong'); title.textContent=`${row.session} · #${row.number} ${row.name}`;
   const value=document.createElement('div'); value.textContent=`L${lap.lap} · ${label} ${precise(lap[key],key)}`;
   tooltip.append(title,value);
+  const [code,compound,tireColor]=tyreInfo(lap);
+  const tyre=document.createElement('div');tyre.className='tooltip-tyre';
+  const badge=document.createElement('span');badge.style.background=tireColor;badge.className='tyre-swatch';
+  tyre.append(badge,document.createTextNode(`타이어 ${code} · ${compound}`));tooltip.append(tyre);
   if(lap.deleted){const note=document.createElement('div');note.textContent='삭제 확인 랩';tooltip.append(note);}
   tooltip.hidden=false;
   const box=event.currentTarget.getBoundingClientRect();
@@ -38,9 +51,9 @@ function renderChart(svg, row, metric) {
   for(let l=1;l<=max;l+=step)el('text',{x:X(l),y:295,fill:'#adbed3','text-anchor':'middle','font-size':13},'L'+l);
   let prev=null;
   for(const p of row.laps){if(!Number.isFinite(p[key])||p[key]<=0){prev=null;continue;}if(prev&&p.lap===prev.lap+1)el('line',{x1:X(prev.lap),x2:X(p.lap),y1:Y(prev[key]),y2:Y(p[key]),stroke:color,'stroke-width':1.6});prev=p;}
-  for(const p of points){const hit=el('circle',{cx:X(p.lap),cy:Y(p[key]),r:10,fill:'transparent',tabindex:0,role:'button','aria-label':`L${p.lap} ${label} ${precise(p[key],key)}`});
-    const dot=el('circle',{cx:X(p.lap),cy:Y(p[key]),r:3.8,fill:p.deleted?'#ff7474':color,'pointer-events':'none'});
-    const title=document.createElementNS(ns,'title');title.textContent=`L${p.lap}: ${precise(p[key],key)}`;hit.append(title);
+  for(const p of points){const hit=el('circle',{cx:X(p.lap),cy:Y(p[key]),r:10,fill:'transparent',tabindex:0,role:'button','aria-label':`L${p.lap} ${label} ${precise(p[key],key)} 타이어 ${tyreInfo(p)[0]} ${tyreInfo(p)[1]}`});
+    const dot=el('circle',{cx:X(p.lap),cy:Y(p[key]),r:4.5,fill:tyreInfo(p)[2],stroke:p.deleted?'#ff7474':'#152339','stroke-width':p.deleted?2.5:1,'pointer-events':'none'});
+    const title=document.createElementNS(ns,'title');title.textContent=`L${p.lap}: ${precise(p[key],key)} · ${tyreInfo(p)[0]} ${tyreInfo(p)[1]}`;hit.append(title);
     ['pointerenter','pointermove','click','focus'].forEach(type=>hit.addEventListener(type,e=>showTooltip(e,p,metric,row)));
     hit.addEventListener('pointerleave',hideTooltip);hit.addEventListener('blur',hideTooltip);
     hit.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();showTooltip(e,p,metric,row);}if(e.key==='Escape')hideTooltip();});

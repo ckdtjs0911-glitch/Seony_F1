@@ -53,6 +53,36 @@ def snapshot(name="Qualifying"):
 
 
 class ReportTests(unittest.TestCase):
+    def test_tyre_mapping_boundaries_missing_and_conflicts(self):
+        stints = [
+            {"lap_start": 1, "lap_end": 5, "compound": "SOFT"},
+            {"lap_start": 5, "lap_end": 10, "compound": "MEDIUM"},
+            {"lap_start": 11, "lap_end": None, "compound": "HARD"},
+        ]
+        self.assertEqual(report.tyre_for_lap(stints, 1), "SOFT")
+        self.assertEqual(report.tyre_for_lap(stints, 5), "UNKNOWN")
+        self.assertEqual(report.tyre_for_lap(stints, 6), "MEDIUM")
+        self.assertEqual(report.tyre_for_lap(stints, 10), "MEDIUM")
+        self.assertEqual(report.tyre_for_lap(stints, 11), "UNKNOWN")
+
+    def test_chart_laps_include_tyre_and_all_drivers_get_verdict(self):
+        item = snapshot()
+        item["data"]["stints"] = [
+            {
+                "driver_number": 1,
+                "stint_number": 1,
+                "lap_start": 1,
+                "lap_end": 3,
+                "compound": "SOFT",
+            }
+        ]
+        rows = report.summarize(item)
+        self.assertEqual(rows[0]["laps"][0]["tyre"], "SOFT")
+        text = report.render_verdicts("Qualifying", rows)
+        self.assertEqual(text.count("<tr data-search="), 2)
+        self.assertIn("DNS", text)
+        self.assertIn("1:22.000", text)
+
     def test_sector_values_and_missing_sectors_are_preserved(self):
         item = snapshot()
         item["data"]["laps"][0].update(
