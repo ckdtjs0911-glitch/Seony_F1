@@ -13,6 +13,41 @@ def duration(value):
     return "미제공"
 
 
+def replacement_compound(event, stints):
+    lap = event.get("lap_number")
+    if not isinstance(lap, int):
+        return None
+    driver_stints = sorted(
+        [
+            s
+            for s in stints
+            if s.get("driver_number") == event["driver_number"]
+            and isinstance(s.get("lap_start"), int)
+        ],
+        key=lambda s: s["lap_start"],
+    )
+    candidates = []
+    for previous, current in zip(driver_stints, driver_stints[1:]):
+        start = current["lap_start"]
+        if start in (lap, lap + 1) and previous.get("lap_end") == start - 1:
+            candidates.append(current.get("compound"))
+    return candidates[0] if len(candidates) == 1 else None
+
+
+def compound_badge(compound):
+    labels = {
+        "HARD": ("H", "하드", "#f4f4f4"),
+        "MEDIUM": ("M", "미디엄", "#ffdb34"),
+        "SOFT": ("S", "소프트", "#ff4343"),
+        "INTERMEDIATE": ("I", "인터미디어트", "#52d983"),
+        "WET": ("W", "웨트", "#58a6ff"),
+    }
+    if compound not in labels:
+        return "미확인"
+    code, name, color = labels[compound]
+    return f'<span style="display:inline-flex;align-items:center;gap:7px"><span aria-hidden="true" style="background:{color};width:12px;height:12px;border-radius:50%"></span>{code} · {name}</span>'
+
+
 def render_pitstops(snapshot, rows):
     if snapshot["session"]["session_name"] != "Race":
         return ""
@@ -75,7 +110,7 @@ def render_pitstops(snapshot, rows):
             if not events:
                 panel += '<p class="meta">수집된 레이스 시간 범위에서 확인된 피트 기록 없음</p>'
             else:
-                panel += '<div class="scroll"><table><thead><tr><th>기록 번호</th><th>랩</th><th>기록 시각 (한국 시간)</th><th>정차 시간</th><th>피트 레인 통과 시간</th></tr></thead><tbody>'
+                panel += '<div class="scroll"><table><thead><tr><th>기록 번호</th><th>랩</th><th>기록 시각 (한국 시간)</th><th>피트 레인 통과 시간</th><th>컴파운드</th></tr></thead><tbody>'
                 for index, event in enumerate(events, 1):
                     when = parse_time(event.get("date"))
                     clock = (
@@ -91,7 +126,7 @@ def render_pitstops(snapshot, rows):
                         lane_text = (
                             duration(event["pit_duration"]) + " (기존 pit_duration)"
                         )
-                    panel += f'<tr><td>{index}</td><td>{event.get("lap_number") if event.get("lap_number") is not None else "미제공"}</td><td>{clock}</td><td>{duration(event.get("stop_duration"))}</td><td>{lane_text}</td></tr>'
+                    panel += f'<tr><td>{index}</td><td>{event.get("lap_number") if event.get("lap_number") is not None else "미제공"}</td><td>{clock}</td><td>{lane_text}</td><td>{compound_badge(replacement_compound(event, data.get("stints", [])))}</td></tr>'
                 panel += "</tbody></table></div>"
             panels.append(panel + "</article>")
         parts.append(
@@ -105,9 +140,9 @@ def render_pitstops(snapshot, rows):
     return (
         '<section id="race-pit-stops" style="scroll-margin-top:24px"><h2>팀·선수별 피트스탑 기록</h2>'
         '<div class="chart-toolbar"><label for="pit-search">선수 / 팀 검색</label><input id="pit-search" type="search" placeholder="예: 노리스, 멕라렌, McLaren"><select id="pit-driver" aria-label="피트 기록 선수 선택"></select><span id="pit-search-status" class="meta" role="status" aria-live="polite"></span></div>'
-        '<p class="meta">피트 기록의 랩과 한국 시간을 표시합니다. 시각은 API 이벤트 기록 시각이며 정확한 진입·출구 시각은 추정하지 않습니다. 정차 시간은 stop_duration, 레인 통과 시간은 lane_duration 기준입니다. '
-        "기존 pit_duration만 있는 경우 출처 필드명을 붙입니다. 서로 대체하거나 정차 시간을 추정하지 않습니다. 레인 시간에는 대기·경기 중단 등의 영향이 포함될 수 있어 타이어 교체 작업 시간과 같지 않습니다. "
-        "피트 진입 기록은 타이어 교체 횟수와 다를 수 있고, 기록 없음은 실제 무정차를 단정하지 않습니다."
+        '<p class="meta">피트 기록의 랩과 한국 시간을 표시합니다. 시각은 API 이벤트 기록 시각이며 정확한 진입·출구 시각은 추정하지 않습니다. 레인 통과 시간은 lane_duration 기준입니다. '
+        "기존 pit_duration만 있는 경우 출처 필드명을 붙입니다. 정차 시간을 추정하지 않습니다. 레인 시간에는 대기·경기 중단 등의 영향이 포함될 수 있어 타이어 교체 작업 시간과 같지 않습니다. "
+        "컴파운드는 피트 기록 랩 또는 다음 랩에서 시작하는 연속 스틴트의 타이어입니다. 경계가 불명확하면 미확인으로 표시합니다. 실제 교체 여부나 새 타이어 여부를 단정하지 않습니다. 기록 없음은 실제 무정차를 뜻하지 않습니다."
         + note
         + "</p>"
         + "".join(parts)

@@ -1,11 +1,43 @@
 import unittest
 
-from race_pitstops import render_pitstops
+from race_pitstops import render_pitstops, replacement_compound
 from test_weekend_report import snapshot
 import weekend_report as report
 
 
 class PitStopTests(unittest.TestCase):
+    def test_replacement_matches_only_unambiguous_adjacent_stint(self):
+        stints = [
+            {"driver_number": 1, "lap_start": 1, "lap_end": 22, "compound": "MEDIUM"},
+            {"driver_number": 1, "lap_start": 23, "lap_end": 53, "compound": "HARD"},
+            {"driver_number": 1, "lap_start": 54, "lap_end": 70, "compound": "SOFT"},
+        ]
+        self.assertEqual(
+            replacement_compound({"driver_number": 1, "lap_number": 22}, stints), "HARD"
+        )
+        self.assertEqual(
+            replacement_compound({"driver_number": 1, "lap_number": 23}, stints), "HARD"
+        )
+        self.assertEqual(
+            replacement_compound({"driver_number": 1, "lap_number": 53}, stints), "SOFT"
+        )
+        self.assertIsNone(
+            replacement_compound({"driver_number": 1, "lap_number": 1}, stints)
+        )
+        self.assertIsNone(
+            replacement_compound({"driver_number": 1, "lap_number": 40}, stints)
+        )
+        self.assertIsNone(
+            replacement_compound({"driver_number": 2, "lap_number": 22}, stints)
+        )
+        ambiguous = stints[:1] + [
+            {"driver_number": 1, "lap_start": 23, "lap_end": 23, "compound": "HARD"},
+            {"driver_number": 1, "lap_start": 24, "lap_end": 70, "compound": "SOFT"},
+        ]
+        self.assertIsNone(
+            replacement_compound({"driver_number": 1, "lap_number": 23}, ambiguous)
+        )
+
     def test_stationary_lane_and_legacy_times_are_distinct(self):
         item = snapshot("Race")
         item["data"]["pit"] = [
@@ -31,12 +63,14 @@ class PitStopTests(unittest.TestCase):
             },
         ]
         page = render_pitstops(item, report.summarize(item))
-        self.assertIn("2.123초", page)
+        self.assertNotIn("2.123초", page)
+        self.assertNotIn("<th>정차 시간</th>", page)
+        self.assertIn("<th>컴파운드</th>", page)
         self.assertIn("22.500초", page)
         self.assertIn("25.200초 (기존 pit_duration)", page)
         self.assertIn("2025-01-01 21:11:00", page)
         self.assertNotIn("999.000초", page)
-        self.assertIn("미제공", page)
+        self.assertIn("미확인", page)
         self.assertIn("기록 없음", page)
         self.assertIn("Test &lt;Driver&gt;", page)
         self.assertEqual(page.count("data-pit-driver="), 2)
