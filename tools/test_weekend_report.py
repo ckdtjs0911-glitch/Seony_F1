@@ -53,6 +53,54 @@ def snapshot(name="Qualifying"):
 
 
 class ReportTests(unittest.TestCase):
+    def test_qualifying_laps_use_phase_start_messages_not_lap_times(self):
+        item = snapshot()
+        item["data"]["race_control"] = [
+            {
+                "date": "2025-01-01T12:00:00+00:00",
+                "qualifying_phase": 1,
+                "message": "SESSION STARTED",
+            },
+            {
+                "date": "2025-01-01T12:05:00+00:00",
+                "qualifying_phase": 1,
+                "message": "SESSION STARTED",
+            },
+            {
+                "date": "2025-01-01T12:20:00+00:00",
+                "qualifying_phase": 2,
+                "message": "SESSION STARTED",
+            },
+            {
+                "date": "2025-01-01T12:35:00+00:00",
+                "qualifying_phase": 2,
+                "message": "SESSION FINISHED",
+            },
+        ]
+        windows = report.qualifying_windows(item)
+        self.assertEqual(
+            report.lap_qualifying_phase(
+                {"date_start": "2025-01-01T12:03:00+00:00"}, windows
+            ),
+            1,
+        )
+        self.assertEqual(
+            report.lap_qualifying_phase(
+                {"date_start": "2025-01-01T12:20:00+00:00"}, windows
+            ),
+            2,
+        )
+        self.assertIsNone(
+            report.lap_qualifying_phase(
+                {"date_start": None, "lap_duration": 80}, windows
+            )
+        )
+        self.assertIsNone(
+            report.lap_qualifying_phase(
+                {"date_start": "2025-01-01T12:40:00+00:00"}, windows
+            )
+        )
+
     def test_non_numeric_classification_does_not_break_sorting(self):
         item = snapshot()
         item["data"]["session_result"][0]["position"] = "RT"

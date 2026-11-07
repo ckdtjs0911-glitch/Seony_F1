@@ -196,8 +196,57 @@ def render_verdicts(name, rows):
     )
 
 
+def qualifying_windows(snapshot):
+    if (
+        snapshot["session"].get("session_type") != "Qualifying"
+        and snapshot["session"]["session_name"] != "Qualifying"
+    ):
+        return []
+    controls = snapshot.get("data", {}).get("race_control", [])
+    windows = []
+    for phase in (1, 2, 3):
+        starts = [
+            stamp(r["date"])
+            for r in controls
+            if r.get("qualifying_phase") == phase
+            and r.get("message") == "SESSION STARTED"
+            and r.get("date")
+        ]
+        if not starts:
+            continue
+        start = min(starts)
+        next_starts = [
+            stamp(r["date"])
+            for r in controls
+            if r.get("qualifying_phase") in range(phase + 1, 4)
+            and r.get("message") == "SESSION STARTED"
+            and r.get("date")
+        ]
+        finishes = [
+            stamp(r["date"])
+            for r in controls
+            if r.get("qualifying_phase") == phase
+            and r.get("message") == "SESSION FINISHED"
+            and r.get("date")
+        ]
+        end = min(next_starts) if next_starts else max(finishes) if finishes else None
+        if end and end > start:
+            windows.append((phase, start, end))
+    return windows
+
+
+def lap_qualifying_phase(lap, windows):
+    if lap.get("qualifying_phase") in (1, 2, 3):
+        return lap["qualifying_phase"]
+    if not lap.get("date_start"):
+        return None
+    moment = stamp(lap["date_start"])
+    return next((phase for phase, start, end in windows if start <= moment < end), None)
+
+
 def summarize(snapshot):
     data = snapshot["data"]
+    phase_windows = qualifying_windows(snapshot)
     drivers = {x["driver_number"]: x for x in data.get("drivers", [])}
     results = {x["driver_number"]: x for x in data.get("session_result", [])}
     all_laps = data.get("laps", [])
@@ -296,6 +345,7 @@ def summarize(snapshot):
                         "s2": x.get("duration_sector_2"),
                         "s3": x.get("duration_sector_3"),
                         "tyre": tyre_for_lap(stints, x["lap_number"]),
+                        "phase": lap_qualifying_phase(x, phase_windows),
                         "deleted": (number, x["lap_number"]) in deleted,
                     }
                     for x in laps
@@ -394,7 +444,7 @@ METHODOLOGY = (
 CHART_CSS = ROOT / "tools" / "report_charts.css"
 CHART_JS = ROOT / "tools" / "report_charts.js"
 
-CHART_SECTION = """<section id="lap-sector-analysis" class="chart-workspace" style="scroll-margin-top:24px"><div class="chart-kicker">SESSION TELEMETRY</div><h2>랩타임 &amp; 섹터 분석</h2><div id="session-tabs" class="session-tabs" role="tablist" aria-label="세션 선택"></div><div id="chart-panel" role="tabpanel"><div class="chart-toolbar"><label for="chart-search">선수 / 팀 검색</label><input id="chart-search" type="search" placeholder="예: 노리스, 멕라렌, McLaren" aria-label="차트 선수 또는 팀 검색"><select id="chart-driver" aria-label="드라이버 선택"></select><span id="chart-search-status" class="meta" role="status" aria-live="polite"></span></div><p id="chart-summary" class="chart-caption"></p><article class="chart-card"><h3>랩타임 <small>점에 마우스를 올리거나 터치하면 0.001초 단위 기록이 표시됩니다</small></h3><div class="scroll"><svg id="chart-time" viewBox="0 0 1100 320" role="img" aria-label="랩타임 차트"></svg></div></article><h3 class="sector-heading">섹터별 선수 시간</h3><p class="sector-hint">같은 세션·드라이버의 섹터 1·2·3 기록입니다. 기록이 없는 랩 앞뒤는 선으로 잇지 않습니다. 타이어는 스틴트의 명시된 랩 범위로 연결하며, 범위가 겹치거나 없으면 미확인입니다.</p><article class="chart-card"><h3>섹터 1</h3><div class="scroll"><svg id="chart-s1" viewBox="0 0 1100 320" role="img" aria-label="섹터 1 차트"></svg></div></article><article class="chart-card"><h3>섹터 2</h3><div class="scroll"><svg id="chart-s2" viewBox="0 0 1100 320" role="img" aria-label="섹터 2 차트"></svg></div></article><article class="chart-card"><h3>섹터 3</h3><div class="scroll"><svg id="chart-s3" viewBox="0 0 1100 320" role="img" aria-label="섹터 3 차트"></svg></div></article></div><p class="chart-caption">점 색상은 사용 타이어를 나타내며, 빨간 테두리는 삭제가 확인된 랩입니다 · 키보드 Tab으로 점을 선택할 수 있습니다 · 느린 랩도 생략하지 않고 표시합니다</p></section><div id="chart-tooltip" class="chart-tooltip" role="status" aria-live="polite" hidden></div>"""
+CHART_SECTION = """<section id="lap-sector-analysis" class="chart-workspace" style="scroll-margin-top:24px"><div class="chart-kicker">SESSION TELEMETRY</div><h2>랩타임 &amp; 섹터 분석</h2><div id="session-tabs" class="session-tabs" role="tablist" aria-label="세션 선택"></div><div id="chart-panel" role="tabpanel"><div class="chart-toolbar"><label for="chart-search">선수 / 팀 검색</label><input id="chart-search" type="search" placeholder="예: 노리스, 멕라렌, McLaren" aria-label="차트 선수 또는 팀 검색"><select id="chart-driver" aria-label="드라이버 선택"></select><span id="chart-search-status" class="meta" role="status" aria-live="polite"></span><label id="qualifying-phase-control" hidden>퀄리파잉 구간<select id="qualifying-phase" aria-label="퀄리파잉 구간"><option value="all">전체</option><option value="1">Q1</option><option value="2">Q2</option><option value="3">Q3</option><option value="unknown">미구분</option></select></label></div><p id="qualifying-record" class="meta" hidden></p><p id="chart-summary" class="chart-caption"></p><article class="chart-card"><h3>랩타임 <small>점에 마우스를 올리거나 터치하면 0.001초 단위 기록이 표시됩니다</small></h3><div class="scroll"><svg id="chart-time" viewBox="0 0 1100 320" role="img" aria-label="랩타임 차트"></svg></div></article><h3 class="sector-heading">섹터별 선수 시간</h3><p class="sector-hint">같은 세션·드라이버의 섹터 1·2·3 기록입니다. 기록이 없는 랩 앞뒤는 선으로 잇지 않습니다. 타이어는 스틴트의 명시된 랩 범위로 연결하며, 범위가 겹치거나 없으면 미확인입니다.</p><article class="chart-card"><h3>섹터 1</h3><div class="scroll"><svg id="chart-s1" viewBox="0 0 1100 320" role="img" aria-label="섹터 1 차트"></svg></div></article><article class="chart-card"><h3>섹터 2</h3><div class="scroll"><svg id="chart-s2" viewBox="0 0 1100 320" role="img" aria-label="섹터 2 차트"></svg></div></article><article class="chart-card"><h3>섹터 3</h3><div class="scroll"><svg id="chart-s3" viewBox="0 0 1100 320" role="img" aria-label="섹터 3 차트"></svg></div></article></div><p class="chart-caption">점 색상은 사용 타이어를 나타내며, 빨간 테두리는 삭제가 확인된 랩입니다 · 키보드 Tab으로 점을 선택할 수 있습니다 · 느린 랩도 생략하지 않고 표시합니다</p></section><div id="chart-tooltip" class="chart-tooltip" role="status" aria-live="polite" hidden></div>"""
 
 
 def render(snapshots, output, now=None):

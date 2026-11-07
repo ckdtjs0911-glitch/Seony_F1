@@ -59,6 +59,9 @@ function renderChart(svg, row, metric) {
     hit.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();showTooltip(e,p,metric,row);}if(e.key==='Escape')hideTooltip();});
   }
 }
+const phaseSelect=document.getElementById('qualifying-phase');
+function isQualifying(){return activeSession==='퀄리파잉';}
+function phaseLaps(row){const phase=isQualifying()?phaseSelect.value:'all';return phase==='all'?row.laps:row.laps.filter(l=>phase==='unknown'?l.phase==null:l.phase===+phase);}
 function draw(){hideTooltip();const row=rows.find(r=>r.session===activeSession&&r.number===+driverSelect.value);
   const heading=document.querySelector('#chart-time').closest('.chart-card').querySelector('h3');
   let title=heading.querySelector('.lap-count-title');
@@ -67,14 +70,19 @@ function draw(){hideTooltip();const row=rows.find(r=>r.session===activeSession&&
   const count=completed ?? row?.records;
   title.textContent=activeSession.startsWith('프랙티스')&&row?`랩타임(총 ${count}랩${completed===null?' · 기록 기준':''})`:'랩타임';
 
-  metrics.forEach(metric=>renderChart(document.getElementById('chart-'+metric[0]),row,metric));
-  document.getElementById('chart-summary').textContent=row?`${activeSession} · #${row.number} ${row.name} · ${row.records}개 랩 기록`:`${activeSession} · 수집된 세션 데이터가 없습니다.`;
+  const selectedPhase=isQualifying()?phaseSelect.value:'all';
+  const filtered=row?{...row,laps:phaseLaps(row)}:null;
+  if(isQualifying()&&selectedPhase!=='all')title.textContent='랩타임 · '+(selectedPhase==='unknown'?'미구분':'Q'+selectedPhase);
+  const official=document.getElementById('qualifying-record');official.hidden=!isQualifying();
+  if(isQualifying()){const record=row&&['1','2','3'].includes(selectedPhase)?row.q[+selectedPhase-1]:null;official.textContent=['1','2','3'].includes(selectedPhase)?`Q${selectedPhase} 공식 기록: ${Number.isFinite(record)&&record>0?precise(record,'time'):'기록 없음 / 미제공'} · 차트는 단계 시작 메시지와 랩 시작 시각 기준이며, 구분 불가능한 랩은 미구분입니다.`:'Q1·Q2·Q3를 선택하면 해당 단계 공식 기록과 랩·섹터 차트를 표시합니다. 미구분 랩은 임의 배정하지 않습니다.';}
+  metrics.forEach(metric=>renderChart(document.getElementById('chart-'+metric[0]),filtered,metric));
+  document.getElementById('chart-summary').textContent=row?`${activeSession} · #${row.number} ${row.name} · ${filtered.laps.length}개 랩 기록`:`${activeSession} · 수집된 세션 데이터가 없습니다.`;
 }
 function updateDriverOptions(){
   const previous=driverSelect.value;
   const sessionRows=rows.filter(r=>r.session===activeSession);
   const query=document.getElementById('chart-search')?.value||'';
-  const matched=sessionRows.filter(r=>matchesSearch(r.name+' '+r.team,query));
+  const matched=sessionRows.filter(r=>matchesSearch(r.name+' '+r.team,query)&&( !isQualifying()||phaseSelect.value==='all'||phaseLaps(r).length||(['1','2','3'].includes(phaseSelect.value)&&r.q[+phaseSelect.value-1]!=null)));
   driverSelect.replaceChildren();
   for(const r of matched){const o=document.createElement('option');o.value=r.number;o.textContent=`${r.position != null ? "P"+r.position : "P—"} #${r.number} ${r.name} - ${r.team}`;driverSelect.append(o);}
   if([...driverSelect.options].some(o=>o.value===previous))driverSelect.value=previous;
@@ -85,6 +93,7 @@ function updateDriverOptions(){
   if(sessionRows.length&&!matched.length)document.getElementById('chart-summary').textContent=`${activeSession} · 검색 결과가 없습니다. 선수 이름이나 팀명을 확인해 주세요.`;
 }
 function selectSession(name){activeSession=name;
+  document.getElementById('qualifying-phase-control').hidden=!isQualifying();
   document.querySelectorAll('#session-tabs button').forEach(b=>{b.setAttribute('aria-selected',String(b.textContent===name));b.tabIndex=b.textContent===name?0:-1;});
   updateDriverOptions();
 }
@@ -154,6 +163,7 @@ const pagers=[...document.querySelectorAll('.result-table')].map((container,inde
 const search=document.getElementById('search');if(search)search.oninput=()=>pagers.forEach(reset=>reset());
 
 const chartSearch=document.getElementById('chart-search');if(chartSearch)chartSearch.oninput=updateDriverOptions;
+phaseSelect.onchange=updateDriverOptions;
 driverSelect.onchange=draw;window.addEventListener('wheel',hideTooltip,{passive:true});window.addEventListener('touchmove',hideTooltip,{passive:true});window.addEventListener('resize',hideTooltip);document.addEventListener('keydown',e=>{if(e.key==='Escape')hideTooltip();});selectSession(activeSession);
 
 // srcdoc inherits the archive URL; handle fragment links within this document.
