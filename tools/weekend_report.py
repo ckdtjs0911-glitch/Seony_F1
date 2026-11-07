@@ -12,6 +12,8 @@ from pathlib import Path
 
 import requests
 
+from race_events import render_race_events
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from openf1.util import openf1_client  # noqa: E402
 
@@ -406,6 +408,7 @@ def render(snapshots, output, now=None):
         body += (
             render_table(name, rows) + render_verdicts(name, rows) + render_stints(rows)
         )
+        body += render_race_events(item, rows)
         chart_data.extend(dict(row, session=label) for row in rows)
         sections.append(body)
     location = next(
@@ -432,7 +435,7 @@ def render(snapshots, output, now=None):
 <style>{STYLE}</style></head><body>
 <main><header><p class="eyebrow">SEONY F1 / WEEKEND REPORT</p><h1>{esc(location)} · 주말 전체 선수 보고서</h1><p>프랙티스 1·2·3 + 퀄리파잉 + 레이스<br>생성 시각 {display_time(now)} · 데이터 출처 OpenF1 API</p><button type="button" onclick="document.querySelectorAll('details').forEach(d=>d.open=true);window.print()">인쇄 / PDF 저장</button></header>
 <p class="notice">OpenF1 API 데이터로 만든 보고서이며, FIA 공식 결과와 별도로 대조하지 않았습니다. 데이터 대기·누락·갱신 실패는 구분해 표시합니다. 각 세션의 선수 목록은 drivers·session_result·laps 응답에 나온 선수를 모두 합친 것입니다. 일정에 따라 아직 열리지 않은 세션이 있을 수 있습니다.</p>
-<ul>{"".join(summary)}<li><a href="#lap-sector-analysis">랩타임 &amp; 섹터 분석</a> · 세션별 랩·섹터·타이어 차트</li></ul><input id="search" type="search" placeholder="선수 / 팀 검색 (예: 노리스, 멕라렌)" aria-label="선수 또는 팀 검색">{"".join(sections)}
+<ul>{"".join(summary)}<li><a href="#Race">레이스 주요 상황 · 리타이어</a></li><li><a href="#lap-sector-analysis">랩타임 &amp; 섹터 분석</a> · 세션별 랩·섹터·타이어 차트</li></ul><input id="search" type="search" placeholder="선수 / 팀 검색 (예: 노리스, 멕라렌)" aria-label="선수 또는 팀 검색">{"".join(sections)}
 {CHART_SECTION}
 <h2>지표 해석과 한계</h2><ul>{methodology}</ul><h2>출처</h2><p><a href="https://api.openf1.org/v1/sessions?meeting_key={esc(meeting)}">OpenF1 주말 세션 목록</a> · 각 session_key에 대한 drivers, session_result, laps, stints, pit, race_control 엔드포인트<br>이 HTML 파일 하나로 인터넷 연결 없이 표·검색·차트를 사용할 수 있습니다.</p></main>
 <style>{chart_css}</style><script>{chart_js}</script></body></html>"""

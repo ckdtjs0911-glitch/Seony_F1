@@ -188,6 +188,7 @@ def fingerprint(snapshots):
     for name in (
         "review_pipeline.py",
         "weekend_report.py",
+        "race_events.py",
         "report_charts.js",
         "report_charts.css",
     ):
