@@ -3,7 +3,130 @@
     "year": 2026,
     "title": "그랑프리별 타이어 컴파운드",
     "filename": "2026-tyre-compounds.png",
-    "source": "사용자 제공 참고자료"
+    "source": "사용자 제공 참고자료",
+    "kind": "compound-selection",
+    "circuits": [
+      {
+        "circuit_key": 10,
+        "hard": "C3",
+        "medium": "C4",
+        "soft": "C5"
+      },
+      {
+        "circuit_key": 151,
+        "hard": "C3",
+        "medium": "C4",
+        "soft": "C5"
+      },
+      {
+        "circuit_key": 23,
+        "hard": "C3",
+        "medium": "C4",
+        "soft": "C5"
+      },
+      {
+        "circuit_key": 22,
+        "hard": "C3",
+        "medium": "C4",
+        "soft": "C5"
+      },
+      {
+        "circuit_key": 19,
+        "hard": "C3",
+        "medium": "C4",
+        "soft": "C5"
+      },
+      {
+        "circuit_key": 4,
+        "hard": "C3",
+        "medium": "C4",
+        "soft": "C5"
+      },
+      {
+        "circuit_key": 39,
+        "hard": "C3",
+        "medium": "C4",
+        "soft": "C5"
+      },
+      {
+        "circuit_key": 144,
+        "hard": "C3",
+        "medium": "C4",
+        "soft": "C5"
+      },
+      {
+        "circuit_key": 61,
+        "hard": "C3",
+        "medium": "C4",
+        "soft": "C5"
+      },
+      {
+        "circuit_key": 65,
+        "hard": "C3",
+        "medium": "C4",
+        "soft": "C5"
+      },
+      {
+        "circuit_key": 14,
+        "hard": "C3",
+        "medium": "C4",
+        "soft": "C5"
+      },
+      {
+        "circuit_key": 49,
+        "hard": "C2",
+        "medium": "C3",
+        "soft": "C4"
+      },
+      {
+        "circuit_key": 15,
+        "hard": "C2",
+        "medium": "C3",
+        "soft": "C4"
+      },
+      {
+        "circuit_key": 7,
+        "hard": "C2",
+        "medium": "C3",
+        "soft": "C4"
+      },
+      {
+        "circuit_key": 55,
+        "hard": "C2",
+        "medium": "C3",
+        "soft": "C4"
+      },
+      {
+        "circuit_key": 153,
+        "hard": "C2",
+        "medium": "C3",
+        "soft": "C4"
+      },
+      {
+        "circuit_key": 12,
+        "hard": "C2",
+        "medium": "C3",
+        "soft": "C4"
+      },
+      {
+        "circuit_key": 9,
+        "hard": "C2",
+        "medium": "C3",
+        "soft": "C4"
+      },
+      {
+        "circuit_key": 46,
+        "hard": "C1",
+        "medium": "C2",
+        "soft": "C3"
+      },
+      {
+        "circuit_key": 2,
+        "hard": "C1",
+        "medium": "C2",
+        "soft": "C3"
+      }
+    ]
   },
   {
     "year": 2026,

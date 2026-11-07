@@ -13,6 +13,43 @@ ALLOWED = {
 }
 
 
+def compound_card(session, item, heading):
+    selected = next(
+        (
+            record
+            for record in item.get("circuits", [])
+            if record["circuit_key"] == session.get("circuit_key")
+        ),
+        None,
+    )
+    place = escape(
+        session.get("location") or session.get("circuit_short_name") or "선택한 그랑프리"
+    )
+    card = (
+        f'<article data-compound-selection="{session.get("circuit_key", "unknown")}">'
+        + heading
+        + f"<p>{place} · 선택한 대회 컴파운드</p>"
+    )
+    if selected is None:
+        return card + "<p>제공된 참고자료에 이 대회의 컴파운드 조합이 없어 표시하지 않습니다.</p></article>"
+    tiles = []
+    for key, code, label, color in [
+        ("hard", "H", "하드", "#f4f4f4"),
+        ("medium", "M", "미디엄", "#ffdb34"),
+        ("soft", "S", "소프트", "#ff4343"),
+    ]:
+        compound = escape(selected[key])
+        tiles.append(
+            f'<div style="background:{color};color:#0b1321;padding:16px 8px;border-radius:12px;text-align:center"><b>{label} · {code}</b><div style="font-size:28px;font-weight:800">{compound}</div></div>'
+        )
+    return (
+        card
+        + '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">'
+        + "".join(tiles)
+        + "</div></article>"
+    )
+
+
 def render_race_attachments(snapshot, directory=None):
     if snapshot["session"]["session_name"] != "Race":
         return ""
@@ -36,6 +73,9 @@ def render_race_attachments(snapshot, directory=None):
             raise ValueError("Attachment filename must not contain a directory")
         path = directory / name
         heading = f'<h4>{escape(item["title"])}</h4><p class="meta">{year}년 · {escape(item.get("source", "참고자료"))}</p>'
+        if item.get("kind") == "compound-selection":
+            cards.append(compound_card(session, item, heading))
+            continue
         if not path.exists():
             cards.append("<article>" + heading + "<p>원본 파일 연결 대기</p></article>")
             continue
