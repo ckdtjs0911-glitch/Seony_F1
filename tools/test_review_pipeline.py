@@ -32,7 +32,7 @@ class PipelineTests(unittest.TestCase):
                 else {"OPENAI_API_KEY": "test", "ANTHROPIC_API_KEY": "test"}
             )
             with patch.dict(pipeline.os.environ, keys, clear=True), patch.object(
-                pipeline, "openai_call", side_effect=RuntimeError("provider offline")
+                pipeline, "claude_call", side_effect=RuntimeError("provider offline")
             ) as provider:
                 pipeline.process(root / "staging", root / "reports", optional=True)
                 if missing:
@@ -62,25 +62,32 @@ class PipelineTests(unittest.TestCase):
         events = []
 
         def codex(key, model, prompt):
-            events.append(prompt["stage"])
-            return dict(self.document, approved=True)
+            events.append(("codex", prompt["stage"]))
+            return dict(self.document, findings=[])
 
         def claude(key, model, prompt):
-            events.append(prompt["stage"])
-            return dict(self.document, findings=[])
+            events.append(("claude", prompt["stage"]))
+            return dict(self.document, approved=True, findings=[])
 
         with patch.object(pipeline, "openai_call", side_effect=codex), patch.object(
             pipeline, "claude_call", side_effect=claude
         ):
             audit = pipeline.review(self.snapshots, self.keys, self.models)
-        self.assertEqual(events, ["draft", "edit", "final_verification"])
+        self.assertEqual(
+            events,
+            [("claude", "draft"), ("codex", "review"), ("claude", "final")],
+        )
         self.assertTrue(audit["approved"])
+        self.assertIn("codex_review", audit)
 
     def test_missing_secrets_stop_before_provider(self):
-        with patch.object(pipeline, "openai_call") as call:
+        with patch.object(pipeline, "openai_call") as codex, patch.object(
+            pipeline, "claude_call"
+        ) as claude:
             with self.assertRaises(RuntimeError):
                 pipeline.review(self.snapshots, {}, self.models)
-            call.assert_not_called()
+            codex.assert_not_called()
+            claude.assert_not_called()
 
     def test_changed_token_or_new_number_rejected(self):
         for text in [
@@ -103,12 +110,63 @@ class PipelineTests(unittest.TestCase):
 
     def test_final_rejection_is_not_approved(self):
         with patch.object(
+            pipeline, "openai_call", return_value=self.document
+        ), patch.object(
             pipeline,
-            "openai_call",
+            "claude_call",
             side_effect=[self.document, dict(self.document, approved=False)],
-        ), patch.object(pipeline, "claude_call", return_value=self.document):
+        ):
             with self.assertRaises(ValueError):
                 pipeline.review(self.snapshots, self.keys, self.models)
+
+    def run_review(self, codex_output, final_output):
+        with patch.object(
+            pipeline, "openai_call", return_value=codex_output
+        ), patch.object(
+            pipeline, "claude_call", side_effect=[self.document, final_output]
+        ):
+            return pipeline.review(self.snapshots, self.keys, self.models)
+
+    def test_final_approval_must_be_boolean_true(self):
+        for approved in ["true", 1, None]:
+            final = dict(self.document, approved=approved)
+            with self.assertRaises(ValueError):
+                self.run_review(self.document, final)
+
+    def test_codex_findings_require_recorded_final_decision(self):
+        codex = dict(self.document, findings=["문장 흐름 수정 제안"])
+        for final_findings in [None, [], [""], "반영함"]:
+            final = dict(self.document, approved=True)
+            if final_findings is not None:
+                final["findings"] = final_findings
+            with self.assertRaises(ValueError):
+                self.run_review(codex, final)
+        final = dict(self.document, approved=True, findings=["반영: 문장 흐름 수정"])
+        self.assertTrue(self.run_review(codex, final)["approved"])
+
+    def test_optional_codex_review_failure_promotes_base(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            candidate = root / "staging" / "weekend-2"
+            report.save_json(candidate / "data" / "1.json", snapshot())
+            report.render(
+                report.load_offline(candidate), candidate / "weekend-report.html"
+            )
+            with patch.dict(
+                pipeline.os.environ,
+                {"OPENAI_API_KEY": "test", "ANTHROPIC_API_KEY": "test"},
+                clear=True,
+            ), patch.object(
+                pipeline, "claude_call", return_value=self.document
+            ), patch.object(
+                pipeline, "openai_call", side_effect=RuntimeError("codex offline")
+            ):
+                pipeline.process(root / "staging", root / "reports", optional=True)
+            final_dir = root / "reports" / "weekend-2"
+            page = (final_dir / "weekend-report.html").read_text(encoding="utf-8")
+            self.assertNotIn('id="ai-editorial"', page)
+            audit = report.load_json(final_dir / "editorial-review.json")
+            self.assertEqual(audit["status"], "failed_optional")
 
     def test_injection_keeps_original_tables_and_scripts(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -195,6 +253,46 @@ class PipelineTests(unittest.TestCase):
                 report.load_json(final_dir / "editorial-review.json")["approved"]
             )
 
+    def test_claude_request_opts_into_refusal_fallback(self):
+        self.assertEqual(
+            set(pipeline.FALLBACK_MODELS),
+            {"claude-opus-5-5", "claude-opus-5", "claude-fable-5-1", "claude-sonnet-5-5"},
+        )
+        response = {
+            "stop_reason": "end_turn",
+            "content": [
+                {"type": "thinking", "thinking": ""},
+                {"type": "text", "text": json.dumps(self.document)},
+            ],
+        }
+        with patch.object(pipeline, "post_json", return_value=response) as post:
+            for model in pipeline.FALLBACK_MODELS:
+                self.assertEqual(pipeline.claude_call("key", model, {}), self.document)
+                _, headers, payload = post.call_args.args
+                self.assertEqual(
+                    headers["anthropic-beta"], "server-side-fallback-2026-07-01"
+                )
+                self.assertEqual(payload["fallbacks"], "default")
+                self.assertEqual(payload["max_tokens"], 16000)
+            pipeline.claude_call("key", "claude-haiku-5-5", {})
+            _, headers, payload = post.call_args.args
+            self.assertNotIn("anthropic-beta", headers)
+            self.assertNotIn("fallbacks", payload)
+
+    def test_default_models_are_current(self):
+        with patch.dict(pipeline.os.environ, {}, clear=True), patch.object(
+            pipeline, "review", side_effect=RuntimeError("stop")
+        ) as review, tempfile.TemporaryDirectory() as folder:
+            candidate = Path(folder) / "staging" / "weekend-2"
+            report.save_json(candidate / "data" / "1.json", snapshot())
+            report.render(
+                report.load_offline(candidate), candidate / "weekend-report.html"
+            )
+            with self.assertRaises(RuntimeError):
+                pipeline.process(Path(folder) / "staging", Path(folder) / "reports")
+            models = review.call_args.args[2]
+        self.assertEqual(models, {"codex": "gpt-6.1-sol", "claude": "claude-opus-5-5"})
+
     def test_provider_outputs_are_parsed(self):
         response = {
             "status": "completed",
@@ -206,8 +304,9 @@ class PipelineTests(unittest.TestCase):
                 }
             ],
         }
-        with patch.object(pipeline, "post_json", return_value=response):
+        with patch.object(pipeline, "post_json", return_value=response) as post:
             self.assertEqual(pipeline.openai_call("key", "model", {}), self.document)
+            self.assertEqual(post.call_args.args[2]["max_output_tokens"], 16000)
         response = {
             "stop_reason": "end_turn",
             "content": [{"type": "text", "text": json.dumps(self.document)}],
