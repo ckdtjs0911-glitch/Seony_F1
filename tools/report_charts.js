@@ -70,11 +70,49 @@ function selectSession(name){const previous=driverSelect.value;activeSession=nam
   driverSelect.disabled=!driverSelect.options.length;draw();
 }
 for(const name of sessionNames){const b=document.createElement('button');b.type='button';b.setAttribute('role','tab');b.textContent=name;b.setAttribute('aria-controls','chart-panel');b.addEventListener('click',()=>selectSession(name));b.addEventListener('keydown',e=>{if(!['ArrowRight','ArrowLeft','Home','End'].includes(e.key))return;e.preventDefault();let i=sessionNames.indexOf(activeSession);const n=sessionNames.length;i=e.key==='Home'?0:e.key==='End'?n-1:(i+(e.key==='ArrowRight'?1:n-1))%n;selectSession(sessionNames[i]);tablist.children[i].focus();});tablist.append(b);}
+const teamAliases = {
+  '맥라렌':'mclaren', '멕라렌':'mclaren', '맥클라렌':'mclaren',
+  '페라리':'ferrari', '메르세데스':'mercedes', '벤츠':'mercedes',
+  '레드불':'red bull', '레드 불':'red bull', '레이싱불스':'racing bulls', '레이싱 불스':'racing bulls',
+  '애스턴마틴':'aston martin', '애스턴 마틴':'aston martin', '아스톤마틴':'aston martin',
+  '알핀':'alpine', '알파인':'alpine', '윌리엄스':'williams',
+  '하스':'haas', '아우디':'audi', '자우버':'sauber', '캐딜락':'cadillac', '카딜락':'cadillac'
+};
+const driverAliases = {
+  '랜도 노리스':'lando norris', '란도 노리스':'lando norris', '노리스':'norris', '랜도':'lando',
+  '막스 베르스타펜':'max verstappen', '막스 베르스태펀':'max verstappen', '베르스타펜':'verstappen', '베르스태펀':'verstappen', '막스':'max',
+  '가브리엘 보톨레토':'gabriel bortoleto', '보톨레토':'bortoleto', '보르톨레토':'bortoleto',
+  '아이작 하자르':'isack hadjar', '아이작 하자':'isack hadjar', '이삭 하자르':'isack hadjar', '하자르':'hadjar', '하자':'hadjar', '아이작':'isack',
+  '피에르 가슬리':'pierre gasly', '가슬리':'gasly', '가스리':'gasly',
+  '세르히오 페레스':'sergio perez', '페레스':'perez',
+  '키미 안토넬리':'kimi antonelli', '키미 안토렐리':'kimi antonelli', '안토넬리':'antonelli', '안토렐리':'antonelli', '키미':'kimi',
+  '페르난도 알론소':'fernando alonso', '알론소':'alonso',
+  '샤를 르클레르':'charles leclerc', '찰스 르클레르':'charles leclerc', '르클레르':'leclerc',
+  '랜스 스트롤':'lance stroll', '스트롤':'stroll',
+  '알렉산더 알본':'alexander albon', '알렉스 알본':'alexander albon', '알본':'albon',
+  '니코 휠켄베르크':'nico hulkenberg', '휠켄베르크':'hulkenberg', '훌켄베르크':'hulkenberg',
+  '리암 로슨':'liam lawson', '로슨':'lawson',
+  '아비드 린드블라드':'arvid lindblad', '아르비드 린드블라드':'arvid lindblad', '린드블라드':'lindblad',
+  '프랑코 콜라핀토':'franco colapinto', '콜라핀토':'colapinto',
+  '루이스 해밀턴':'lewis hamilton', '해밀턴':'hamilton',
+  '하파엘 카마라':'rafael camara', '라파엘 카마라':'rafael camara', '카마라':'camara',
+  '카를로스 사인츠':'carlos sainz', '카를로스 사인스':'carlos sainz', '사인츠':'sainz', '사인스':'sainz',
+  '조지 러셀':'george russell', '러셀':'russell',
+  '발테리 보타스':'valtteri bottas', '보타스':'bottas',
+  '오스카 피아스트리':'oscar piastri', '피아스트리':'piastri',
+  '올리버 베어먼':'oliver bearman', '베어먼':'bearman', '베어만':'bearman',
+  '료 히라카와':'ryo hirakawa', '히라카와':'hirakawa'
+};
+function searchKey(value){
+  let text=value.normalize('NFKC').trim().toLowerCase();
+  for(const [alias,team] of Object.entries({...teamAliases,...driverAliases}).sort((a,b)=>b[0].length-a[0].length)){text=text.split(alias).join(team);if(alias.includes(' '))text=text.split(alias.replace(/\s+/g,'')).join(team);}
+  return text.replace(/\s+/g,'');
+}
 const pagers=[...document.querySelectorAll('.result-table')].map((container,index)=>{
   const all=[...container.querySelectorAll('tbody tr[data-search]')];
   const nav=document.createElement('nav');nav.className='table-pagination';nav.setAttribute('aria-label',`결과표 ${index+1} 페이지`);container.after(nav);
   let page=0;
-  function render(reset=false){if(reset)page=0;const query=(document.getElementById('search')?.value||'').trim().toLowerCase();const filtered=all.filter(r=>r.dataset.search.includes(query));const count=Math.max(1,Math.ceil(filtered.length/10));page=Math.min(page,count-1);all.forEach(r=>r.hidden=true);filtered.slice(page*10,(page+1)*10).forEach(r=>r.hidden=false);nav.replaceChildren();
+  function render(reset=false){if(reset)page=0;const query=searchKey(document.getElementById('search')?.value||'');const filtered=all.filter(r=>searchKey(r.dataset.search).includes(query));const count=Math.max(1,Math.ceil(filtered.length/10));page=Math.min(page,count-1);all.forEach(r=>r.hidden=true);filtered.slice(page*10,(page+1)*10).forEach(r=>r.hidden=false);nav.replaceChildren();
     function button(label,target,disabled=false){const b=document.createElement('button');b.type='button';b.textContent=label;b.disabled=disabled;b.addEventListener('click',()=>{page=target;render();});nav.append(b);return b;}
     button('이전',page-1,page===0);
     for(let i=0;i<count;i++){const start=i*10+1,end=Math.min((i+1)*10,filtered.length);const b=button(filtered.length?`${start}–${end}`:'0명',i,!filtered.length);if(i===page)b.setAttribute('aria-current','page');}
