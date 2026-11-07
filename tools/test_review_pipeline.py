@@ -32,7 +32,7 @@ class PipelineTests(unittest.TestCase):
                 else {"OPENAI_API_KEY": "test", "ANTHROPIC_API_KEY": "test"}
             )
             with patch.dict(pipeline.os.environ, keys, clear=True), patch.object(
-                pipeline, "openai_call", side_effect=RuntimeError("provider offline")
+                pipeline, "claude_call", side_effect=RuntimeError("provider offline")
             ) as provider:
                 pipeline.process(root / "staging", root / "reports", optional=True)
                 if missing:
@@ -62,25 +62,32 @@ class PipelineTests(unittest.TestCase):
         events = []
 
         def codex(key, model, prompt):
-            events.append(prompt["stage"])
-            return dict(self.document, approved=True)
+            events.append(("codex", prompt["stage"]))
+            return dict(self.document, findings=[])
 
         def claude(key, model, prompt):
-            events.append(prompt["stage"])
-            return dict(self.document, findings=[])
+            events.append(("claude", prompt["stage"]))
+            return dict(self.document, approved=True, findings=[])
 
         with patch.object(pipeline, "openai_call", side_effect=codex), patch.object(
             pipeline, "claude_call", side_effect=claude
         ):
             audit = pipeline.review(self.snapshots, self.keys, self.models)
-        self.assertEqual(events, ["draft", "edit", "final_verification"])
+        self.assertEqual(
+            events,
+            [("claude", "draft"), ("codex", "review"), ("claude", "final")],
+        )
         self.assertTrue(audit["approved"])
+        self.assertIn("codex_review", audit)
 
     def test_missing_secrets_stop_before_provider(self):
-        with patch.object(pipeline, "openai_call") as call:
+        with patch.object(pipeline, "openai_call") as codex, patch.object(
+            pipeline, "claude_call"
+        ) as claude:
             with self.assertRaises(RuntimeError):
                 pipeline.review(self.snapshots, {}, self.models)
-            call.assert_not_called()
+            codex.assert_not_called()
+            claude.assert_not_called()
 
     def test_changed_token_or_new_number_rejected(self):
         for text in [
@@ -103,12 +110,63 @@ class PipelineTests(unittest.TestCase):
 
     def test_final_rejection_is_not_approved(self):
         with patch.object(
+            pipeline, "openai_call", return_value=self.document
+        ), patch.object(
             pipeline,
-            "openai_call",
+            "claude_call",
             side_effect=[self.document, dict(self.document, approved=False)],
-        ), patch.object(pipeline, "claude_call", return_value=self.document):
+        ):
             with self.assertRaises(ValueError):
                 pipeline.review(self.snapshots, self.keys, self.models)
+
+    def run_review(self, codex_output, final_output):
+        with patch.object(
+            pipeline, "openai_call", return_value=codex_output
+        ), patch.object(
+            pipeline, "claude_call", side_effect=[self.document, final_output]
+        ):
+            return pipeline.review(self.snapshots, self.keys, self.models)
+
+    def test_final_approval_must_be_boolean_true(self):
+        for approved in ["true", 1, None]:
+            final = dict(self.document, approved=approved)
+            with self.assertRaises(ValueError):
+                self.run_review(self.document, final)
+
+    def test_codex_findings_require_recorded_final_decision(self):
+        codex = dict(self.document, findings=["문장 흐름 수정 제안"])
+        for final_findings in [None, [], [""], "반영함"]:
+            final = dict(self.document, approved=True)
+            if final_findings is not None:
+                final["findings"] = final_findings
+            with self.assertRaises(ValueError):
+                self.run_review(codex, final)
+        final = dict(self.document, approved=True, findings=["반영: 문장 흐름 수정"])
+        self.assertTrue(self.run_review(codex, final)["approved"])
+
+    def test_optional_codex_review_failure_promotes_base(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            candidate = root / "staging" / "weekend-2"
+            report.save_json(candidate / "data" / "1.json", snapshot())
+            report.render(
+                report.load_offline(candidate), candidate / "weekend-report.html"
+            )
+            with patch.dict(
+                pipeline.os.environ,
+                {"OPENAI_API_KEY": "test", "ANTHROPIC_API_KEY": "test"},
+                clear=True,
+            ), patch.object(
+                pipeline, "claude_call", return_value=self.document
+            ), patch.object(
+                pipeline, "openai_call", side_effect=RuntimeError("codex offline")
+            ):
+                pipeline.process(root / "staging", root / "reports", optional=True)
+            final_dir = root / "reports" / "weekend-2"
+            page = (final_dir / "weekend-report.html").read_text(encoding="utf-8")
+            self.assertNotIn('id="ai-editorial"', page)
+            audit = report.load_json(final_dir / "editorial-review.json")
+            self.assertEqual(audit["status"], "failed_optional")
 
     def test_injection_keeps_original_tables_and_scripts(self):
         with tempfile.TemporaryDirectory() as folder:
