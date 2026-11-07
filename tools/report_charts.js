@@ -60,6 +60,13 @@ function renderChart(svg, row, metric) {
   }
 }
 function draw(){hideTooltip();const row=rows.find(r=>r.session===activeSession&&r.number===+driverSelect.value);
+  const heading=document.querySelector('#chart-time').closest('.chart-card').querySelector('h3');
+  let title=heading.querySelector('.lap-count-title');
+  if(!title){title=document.createElement('span');title.className='lap-count-title';heading.firstChild.replaceWith(title);}
+  const completed=row&&Number.isInteger(row.completed)?row.completed:null;
+  const count=completed ?? row?.records;
+  title.textContent=activeSession.startsWith('프랙티스')&&row?`랩타임(총 ${count}랩${completed===null?' · 기록 기준':''})`:'랩타임';
+
   metrics.forEach(metric=>renderChart(document.getElementById('chart-'+metric[0]),row,metric));
   document.getElementById('chart-summary').textContent=row?`${activeSession} · #${row.number} ${row.name} · ${row.records}개 랩 기록`:`${activeSession} · 수집된 세션 데이터가 없습니다.`;
 }
