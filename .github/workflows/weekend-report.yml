@@ -29,7 +29,7 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install requests==2.32.4
       - name: Verify report generation and failure handling
-        run: python -m unittest discover -s tools -p 'test_weekend_report.py'
+        run: python -m unittest discover -s tools -p 'test_*.py'
       - name: Collect five sessions and build report
         env:
           MEETING: ${{ inputs.meeting }}
@@ -44,7 +44,14 @@ jobs:
             fi
             args+=(--meeting "$MEETING")
           fi
-          python tools/weekend_report.py "${args[@]}"
+          python tools/weekend_report.py --output-root .report-staging "${args[@]}"
+      - name: Codex draft, Claude editing, Codex final verification
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          REPORT_CODEX_MODEL: ${{ vars.REPORT_CODEX_MODEL }}
+          REPORT_CLAUDE_MODEL: ${{ vars.REPORT_CLAUDE_MODEL }}
+        run: python tools/review_pipeline.py --staging .report-staging --destination reports
       - name: Retain reports and snapshots for download
         if: always()
         uses: actions/upload-artifact@v4

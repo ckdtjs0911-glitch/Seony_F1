@@ -1,0 +1,183 @@
+"""Checks for provider orchestration, data protection and fail-closed promotion."""
+
+import json
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+import review_pipeline as pipeline
+import weekend_report as report
+from test_weekend_report import snapshot
+
+
+class PipelineTests(unittest.TestCase):
+    def setUp(self):
+        self.snapshots = [snapshot()]
+        self.facts = pipeline.facts_for(self.snapshots)
+        self.document = {
+            "sentences": [{"id": f["id"], "text": f["template"]} for f in self.facts]
+        }
+        self.keys = {"openai": "test-key", "anthropic": "test-key"}
+        self.models = {"codex": "codex-test", "claude": "claude-test"}
+
+    def test_three_stages_in_order(self):
+        events = []
+
+        def codex(key, model, prompt):
+            events.append(prompt["stage"])
+            return dict(self.document, approved=True)
+
+        def claude(key, model, prompt):
+            events.append(prompt["stage"])
+            return dict(self.document, findings=[])
+
+        with patch.object(pipeline, "openai_call", side_effect=codex), patch.object(
+            pipeline, "claude_call", side_effect=claude
+        ):
+            audit = pipeline.review(self.snapshots, self.keys, self.models)
+        self.assertEqual(events, ["draft", "edit", "final_verification"])
+        self.assertTrue(audit["approved"])
+
+    def test_missing_secrets_stop_before_provider(self):
+        with patch.object(pipeline, "openai_call") as call:
+            with self.assertRaises(RuntimeError):
+                pipeline.review(self.snapshots, {}, self.models)
+            call.assert_not_called()
+
+    def test_changed_token_or_new_number_rejected(self):
+        for text in [
+            "{{session}} 선수는 99명입니다.",
+            "{{session}} {{count}} {{count}}",
+            "<script>alert(1)</script>",
+        ]:
+            d = json.loads(json.dumps(self.document))
+            d["sentences"][0]["text"] = text
+            with self.assertRaises(ValueError):
+                pipeline.validate_texts(d, self.facts)
+
+    def test_omitted_or_duplicated_facts_rejected(self):
+        for entries in [
+            self.document["sentences"][:-1],
+            self.document["sentences"] + self.document["sentences"][:1],
+        ]:
+            with self.assertRaises(ValueError):
+                pipeline.validate_texts({"sentences": entries}, self.facts)
+
+    def test_final_rejection_is_not_approved(self):
+        with patch.object(
+            pipeline,
+            "openai_call",
+            side_effect=[self.document, dict(self.document, approved=False)],
+        ), patch.object(pipeline, "claude_call", return_value=self.document):
+            with self.assertRaises(ValueError):
+                pipeline.review(self.snapshots, self.keys, self.models)
+
+    def test_injection_keeps_original_tables_and_scripts(self):
+        with tempfile.TemporaryDirectory() as folder:
+            p = Path(folder) / "report.html"
+            report.render(self.snapshots, p)
+            original = p.read_text(encoding="utf-8")
+            final = pipeline.inject(original, {"final": self.document}, self.facts)
+            self.assertIn("Test &lt;Driver&gt;", final)
+            self.assertIn("2명의", final)
+            start = final.index('<section id="ai-editorial">')
+            end = final.index("</section>", start) + len("</section>")
+            self.assertEqual(final[:start] + final[end:], original)
+
+    def test_provider_error_does_not_replace_previous_report(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            staging = root / "staging"
+            dest = root / "reports"
+            candidate = staging / "weekend-2"
+            report.save_json(candidate / "data" / "1.json", snapshot())
+            report.render(
+                report.load_offline(candidate), candidate / "weekend-report.html"
+            )
+            previous = dest / "weekend-2" / "weekend-report.html"
+            previous.parent.mkdir(parents=True)
+            previous.write_text("old report")
+            with patch.object(
+                pipeline, "review", side_effect=RuntimeError("provider offline")
+            ):
+                with self.assertRaises(RuntimeError):
+                    pipeline.process(staging, dest)
+            self.assertEqual(previous.read_text(), "old report")
+
+    def test_unchanged_data_reuses_approved_review(self):
+        cached = {
+            "fingerprint": pipeline.fingerprint(self.snapshots),
+            "models": self.models,
+            "approved": True,
+            "final": self.document,
+        }
+        with patch.object(pipeline, "openai_call") as call:
+            self.assertEqual(
+                pipeline.review(self.snapshots, {}, self.models, cached), cached
+            )
+            call.assert_not_called()
+
+    def test_success_promotes_review_and_preserves_source_data(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            staging = root / "staging"
+            candidate = staging / "weekend-2"
+            destination = root / "reports"
+            report.save_json(candidate / "data" / "1.json", snapshot())
+            report.render(
+                report.load_offline(candidate), candidate / "weekend-report.html"
+            )
+            source_bytes = (candidate / "data" / "1.json").read_bytes()
+
+            def approved(key, model, prompt):
+                return {
+                    "approved": True,
+                    "sentences": [
+                        {"id": fact["id"], "text": fact["template"]}
+                        for fact in prompt["facts"]
+                    ],
+                }
+
+            with patch.dict(
+                pipeline.os.environ,
+                {"OPENAI_API_KEY": "test-key", "ANTHROPIC_API_KEY": "test-key"},
+            ), patch.object(
+                pipeline, "openai_call", side_effect=approved
+            ), patch.object(
+                pipeline, "claude_call", side_effect=approved
+            ):
+                pipeline.process(staging, destination)
+            final_dir = destination / "weekend-2"
+            self.assertIn(
+                'id="ai-editorial"',
+                (final_dir / "weekend-report.html").read_text(encoding="utf-8"),
+            )
+            self.assertEqual((final_dir / "data" / "1.json").read_bytes(), source_bytes)
+            self.assertTrue(
+                report.load_json(final_dir / "editorial-review.json")["approved"]
+            )
+
+    def test_provider_outputs_are_parsed(self):
+        response = {
+            "status": "completed",
+            "output": [
+                {
+                    "content": [
+                        {"type": "output_text", "text": json.dumps(self.document)}
+                    ]
+                }
+            ],
+        }
+        with patch.object(pipeline, "post_json", return_value=response):
+            self.assertEqual(pipeline.openai_call("key", "model", {}), self.document)
+        response = {
+            "stop_reason": "end_turn",
+            "content": [{"type": "text", "text": json.dumps(self.document)}],
+        }
+        with patch.object(pipeline, "post_json", return_value=response):
+            self.assertEqual(pipeline.claude_call("key", "model", {}), self.document)
+
+
+if __name__ == "__main__":
+    unittest.main()

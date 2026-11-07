@@ -131,3 +131,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Temporary report drafts before AI approval
+.report-staging/
