@@ -85,9 +85,9 @@ function selectSession(name){activeSession=name;
 for(const name of sessionNames){const b=document.createElement('button');b.type='button';b.setAttribute('role','tab');b.textContent=name;b.setAttribute('aria-controls','chart-panel');b.addEventListener('click',()=>selectSession(name));b.addEventListener('keydown',e=>{if(!['ArrowRight','ArrowLeft','Home','End'].includes(e.key))return;e.preventDefault();let i=sessionNames.indexOf(activeSession);const n=sessionNames.length;i=e.key==='Home'?0:e.key==='End'?n-1:(i+(e.key==='ArrowRight'?1:n-1))%n;selectSession(sessionNames[i]);tablist.children[i].focus();});tablist.append(b);}
 const teamAliases = {
   '맥라렌':'mclaren', '멕라렌':'mclaren', '맥클라렌':'mclaren',
-  '페라리':'ferrari', '메르세데스':'mercedes', '벤츠':'mercedes',
+  '페라리':'ferrari', '메르세데스':'mercedes', '벤츠':'mercedes', '메르':'mercedes',
   '레드불':'red bull', '레드 불':'red bull', '레이싱불스':'racing bulls', '레이싱 불스':'racing bulls',
-  '애스턴마틴':'aston martin', '애스턴 마틴':'aston martin', '아스톤마틴':'aston martin',
+  '애스턴마틴':'aston martin', '애스턴 마틴':'aston martin', '아스톤마틴':'aston martin', '애스':'aston martin',
   '알핀':'alpine', '알파인':'alpine', '윌리엄스':'williams',
   '하스':'haas', '아우디':'audi', '자우버':'sauber', '캐딜락':'cadillac', '카딜락':'cadillac'
 };
