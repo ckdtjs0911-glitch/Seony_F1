@@ -103,11 +103,12 @@ class ReportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "report.html"
             report.render([snapshot()], path)
-            text = path.read_text()
+            text = path.read_text(encoding="utf-8")
             self.assertIn("Test &lt;Driver&gt;", text)
             self.assertIn("1:20.300", text)
             self.assertNotIn("@@", text)
             self.assertIn('id="chart-time"', text)
+            self.assertNotIn("REPORT_ROWS", text)
 
     def test_failed_refresh_preserves_last_success(self):
         item = snapshot()
@@ -125,7 +126,10 @@ class ReportTests(unittest.TestCase):
             self.assertEqual(code, 1)
             self.assertEqual(path.read_bytes(), before)
             self.assertIn(
-                "갱신 실패", (root / "weekend-2" / "weekend-report.html").read_text()
+                "갱신 실패",
+                (root / "weekend-2" / "weekend-report.html").read_text(
+                    encoding="utf-8"
+                ),
             )
 
     def test_empty_results_are_retried_not_saved(self):
@@ -145,6 +149,29 @@ class ReportTests(unittest.TestCase):
             with patch.object(report, "fetch", side_effect=fetch):
                 self.assertEqual(report.collect(2, root), 1)
             self.assertFalse((root / "weekend-2" / "data" / "1.json").exists())
+
+    def test_non_ascii_names_round_trip_as_utf8(self):
+        item = snapshot()
+        item["data"]["drivers"][0]["full_name"] = "Sergio Pérez — 세르히오"
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            report.save_json(root / "data" / "1.json", item)
+            self.assertEqual(report.load_json(root / "data" / "1.json"), item)
+            report.render(report.load_offline(root), root / "report.html")
+            text = (root / "report.html").read_bytes().decode("utf-8")
+            self.assertIn("Sergio Pérez — 세르히오", text)
+
+    def test_null_race_control_message_is_ignored(self):
+        item = snapshot()
+        item["data"]["race_control"].append({"message": None})
+        self.assertEqual(report.summarize(item)[0]["fastest"], 82.0)
+
+    def test_timestamps_are_shown_in_readable_utc(self):
+        self.assertEqual(
+            report.display_time("2026-11-06T23:14:26.123+00:00"),
+            "2026-11-06 23:14 UTC",
+        )
+        self.assertEqual(report.display_time("미기록"), "미기록")
 
 
 if __name__ == "__main__":

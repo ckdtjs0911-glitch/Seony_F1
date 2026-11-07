@@ -19,7 +19,8 @@ function showTooltip(event, lap, metric, row) {
   if(lap.deleted){const note=document.createElement('div');note.textContent='삭제 확인 랩';tooltip.append(note);}
   tooltip.hidden=false;
   const box=event.currentTarget.getBoundingClientRect();
-  const px=event.clientX || box.left+box.width/2, py=event.clientY || box.top;
+  const pointer=Number.isFinite(event.clientX);
+  const px=pointer?event.clientX:box.left+box.width/2, py=pointer?event.clientY:box.top;
   tooltip.style.left=Math.max(8,Math.min(px+14,window.innerWidth-tooltip.offsetWidth-12))+'px';
   tooltip.style.top=Math.max(8,Math.min(py+14,window.innerHeight-tooltip.offsetHeight-12))+'px';
 }
@@ -55,7 +56,7 @@ function selectSession(name){const previous=driverSelect.value;activeSession=nam
   if([...driverSelect.options].some(o=>o.value===previous))driverSelect.value=previous;
   driverSelect.disabled=!driverSelect.options.length;draw();
 }
-for(const name of sessionNames){const b=document.createElement('button');b.type='button';b.role='tab';b.textContent=name;b.setAttribute('aria-controls','chart-panel');b.addEventListener('click',()=>selectSession(name));b.addEventListener('keydown',e=>{if(!['ArrowRight','ArrowLeft','Home','End'].includes(e.key))return;e.preventDefault();let i=sessionNames.indexOf(activeSession);i=e.key==='Home'?0:e.key==='End'?4:(i+(e.key==='ArrowRight'?1:4))%5;selectSession(sessionNames[i]);tablist.children[i].focus();});tablist.append(b);}
+for(const name of sessionNames){const b=document.createElement('button');b.type='button';b.setAttribute('role','tab');b.textContent=name;b.setAttribute('aria-controls','chart-panel');b.addEventListener('click',()=>selectSession(name));b.addEventListener('keydown',e=>{if(!['ArrowRight','ArrowLeft','Home','End'].includes(e.key))return;e.preventDefault();let i=sessionNames.indexOf(activeSession);const n=sessionNames.length;i=e.key==='Home'?0:e.key==='End'?n-1:(i+(e.key==='ArrowRight'?1:n-1))%n;selectSession(sessionNames[i]);tablist.children[i].focus();});tablist.append(b);}
 const pagers=[...document.querySelectorAll('.result-table')].map((container,index)=>{
   const all=[...container.querySelectorAll('tbody tr[data-search]')];
   const nav=document.createElement('nav');nav.className='table-pagination';nav.setAttribute('aria-label',`결과표 ${index+1} 페이지`);container.after(nav);

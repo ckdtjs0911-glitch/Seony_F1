@@ -17,7 +17,10 @@ from openf1.util import openf1_client  # noqa: E402
 
 SESSION_NAMES = ("Practice 1", "Practice 2", "Practice 3", "Qualifying", "Race")
 LABELS = dict(zip(SESSION_NAMES, ("프랙티스 1", "프랙티스 2", "프랙티스 3", "퀄리파잉", "레이스")))
+ENDPOINTS = ("drivers", "session_result", "laps", "stints", "pit", "race_control")
+RETRY_STATUS = (429, 500, 502, 503, 504)
 ROOT = Path(__file__).resolve().parents[1]
+ENCODING = "utf-8"
 
 
 def stamp(value):
@@ -33,12 +36,12 @@ def fetch(endpoint, params):
             time.sleep(0.4)
             return value
         except requests.HTTPError as exc:
-            if (
-                exc.response.status_code not in (429, 500, 502, 503, 504)
-                or attempt == 3
-            ):
+            response = exc.response
+            if response is None or response.status_code not in RETRY_STATUS:
                 raise
-            delay = exc.response.headers.get("Retry-After", "")
+            if attempt == 3:
+                raise
+            delay = response.headers.get("Retry-After", "")
             time.sleep(min(60, int(delay)) if delay.isdigit() else 2 ** (attempt + 1))
         except (requests.Timeout, requests.ConnectionError):
             if attempt == 3:
@@ -46,10 +49,16 @@ def fetch(endpoint, params):
             time.sleep(2 ** (attempt + 1))
 
 
+def load_json(path):
+    return json.loads(path.read_text(encoding=ENCODING))
+
+
 def save_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".tmp")
-    temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+    temporary.write_text(
+        json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding=ENCODING
+    )
     temporary.replace(path)
 
 
@@ -63,26 +72,70 @@ def esc(value):
     return html.escape(str(value))
 
 
+def display_time(value):
+    """Format an ISO timestamp as 'YYYY-MM-DD HH:MM UTC'; keep other text as is."""
+    if isinstance(value, datetime):
+        moment = value
+    else:
+        try:
+            moment = stamp(str(value))
+        except ValueError:
+            return str(value)
+    if moment.tzinfo is not None:
+        moment = moment.astimezone(timezone.utc)
+    return moment.strftime("%Y-%m-%d %H:%M UTC")
+
+
+def anchor(name):
+    return name.replace(" ", "-")
+
+
 def deleted_laps(messages):
     deleted = set()
     for message in messages:
         match = re.search(
-            r"CAR (\d+).*TIME .*DELETED.*LAP (\d+)", message.get("message", "")
+            r"CAR (\d+).*TIME .*DELETED.*LAP (\d+)", message.get("message") or ""
         )
         if match:
             deleted.add(tuple(map(int, match.groups())))
     return deleted
 
 
+def result_status(result):
+    if result.get("dsq"):
+        return "DSQ"
+    if result.get("dns"):
+        return "DNS"
+    if result.get("dnf"):
+        return "DNF"
+    return "기록 있음" if result else "결과 대기"
+
+
+def qualifying_phase(q):
+    if q[2] is not None:
+        return "Q3 기록"
+    if q[1] is not None:
+        return "Q2 기록 / Q3 없음"
+    if q[0] is not None:
+        return "Q1 기록 / Q2 없음"
+    return "단계 자료 없음"
+
+
+def format_gap(gap):
+    if isinstance(gap, list):
+        return " / ".join(str(x) if x is not None else "—" for x in gap)
+    if isinstance(gap, (float, int)) and not isinstance(gap, bool):
+        return f"+{gap:.3f}s"
+    return "—" if gap is None else gap
+
+
 def summarize(snapshot):
     data = snapshot["data"]
     drivers = {x["driver_number"]: x for x in data.get("drivers", [])}
     results = {x["driver_number"]: x for x in data.get("session_result", [])}
-    numbers = (
-        set(drivers) | set(results) | {x["driver_number"] for x in data.get("laps", [])}
-    )
-    deleted = deleted_laps(data.get("race_control", []))
     all_laps = data.get("laps", [])
+    numbers = set(drivers) | set(results) | {x["driver_number"] for x in all_laps}
+    deleted = deleted_laps(data.get("race_control", []))
     starts = [stamp(x["date_start"]) for x in all_laps if x.get("date_start")]
     start = min(starts) if starts else None
     ends = [
@@ -105,6 +158,7 @@ def summarize(snapshot):
             if x["driver_number"] == number
             and start
             and end
+            and x.get("date")
             and start <= stamp(x["date"]) <= end
         ]
         pit_laps = {x["lap_number"] for x in pits}
@@ -128,10 +182,12 @@ def summarize(snapshot):
             key=lambda x: x["stint_number"],
         )
         for stint in stints:
+            first = stint.get("lap_start")
+            last = stint.get("lap_end") or -1
             samples = [
                 x["lap_duration"]
                 for x in clean
-                if stint["lap_start"] <= x["lap_number"] <= (stint.get("lap_end") or -1)
+                if first is not None and first <= x["lap_number"] <= last
             ]
             by_compound.append(
                 dict(
@@ -148,15 +204,7 @@ def summarize(snapshot):
                 "name": driver.get("full_name", f"Driver {number}"),
                 "team": driver.get("team_name", "팀 정보 없음"),
                 "position": result.get("position"),
-                "status": "DSQ"
-                if result.get("dsq")
-                else "DNS"
-                if result.get("dns")
-                else "DNF"
-                if result.get("dnf")
-                else "기록 있음"
-                if result
-                else "결과 대기",
+                "status": result_status(result),
                 "completed": result.get("number_of_laps"),
                 "points": result.get("points"),
                 "gap": result.get("gap_to_leader"),
@@ -196,81 +244,121 @@ def summarize(snapshot):
     return rows
 
 
+def or_dash(value):
+    return "—" if value is None else value
+
+
+def render_table(name, rows):
+    bests = [r["fastest"] for r in rows if r["fastest"] is not None]
+    best = min(bests) if bests else None
+    head = (
+        "<th>Q1</th><th>Q2</th><th>Q3</th><th>기록 단계</th>"
+        if name == "Qualifying"
+        else "<th>관측 최속</th><th>최속 대비</th>"
+    )
+    records = []
+    for row in rows:
+        if name == "Qualifying":
+            q = row["q"]
+            extra = "".join(f"<td>{seconds(v)}</td>" for v in q)
+            extra += f"<td>{qualifying_phase(q)}</td>"
+        else:
+            delta = (
+                f'+{row["fastest"] - best:.3f}s'
+                if row["fastest"] is not None and best is not None
+                else "—"
+            )
+            extra = f'<td>{seconds(row["fastest"])}</td><td>{delta}</td>'
+        search = esc((row["name"] + " " + row["team"]).lower())
+        records.append(
+            f'<tr data-search="{search}">'
+            f'<td>{or_dash(row["position"])}</td>'
+            f'<td><b>#{row["number"]} {esc(row["name"])}</b>'
+            f'<small>{esc(row["team"])}</small></td>'
+            f'<td>{esc(row["status"])}</td>{extra}'
+            f'<td>{seconds(row["median"])}<small>표본 {row["samples"]}랩</small></td>'
+            f'<td>{or_dash(row["completed"])} / {row["records"]}</td>'
+            f'<td>{esc(format_gap(row["gap"]))}</td>'
+            f'<td>{or_dash(row["points"])}</td>'
+            f'<td>{row["pits"]}</td></tr>'
+        )
+    return (
+        '<div class="scroll result-table"><table><thead><tr><th>API 순위</th><th>드라이버 / 팀</th>'
+        f"<th>상태</th>{head}<th>랩 중앙값</th><th>완료 / 기록 랩</th>"
+        "<th>API 선두 격차</th><th>점수</th><th>피트 진입</th></tr></thead>"
+        f'<tbody>{"".join(records)}</tbody></table></div>'
+    )
+
+
+def render_stints(rows):
+    cards = []
+    for row in rows:
+        items = "".join(
+            f'<li>{esc(s.get("compound") or "UNKNOWN")} '
+            f'L{or_dash(s.get("lap_start"))}–{s.get("lap_end") or "?"} · '
+            f'중앙값 {seconds(s["median"])} · 표본 {s["sample_count"]}랩</li>'
+            for s in row["stints"]
+        )
+        cards.append(
+            f'<article><h3>#{row["number"]} {esc(row["name"])}</h3>'
+            f'<ul>{items or "<li>스틴트 데이터 없음</li>"}</ul></article>'
+        )
+    return (
+        "<details><summary>전체 선수 타이어 스틴트 · 롱런 참고 지표</summary>"
+        f'<div class="cards">{"".join(cards)}</div></details>'
+    )
+
+
+STYLE = """html{color-scheme:dark}body{background:#0b1321;color:#edf4fc;font:15px/1.7 system-ui,sans-serif;margin:0}main{max-width:1500px;margin:auto;padding:36px 22px}h1{font-size:clamp(28px,5vw,40px);line-height:1.25}h2{margin-top:48px;border-top:2px solid #335170;padding-top:22px}p,small{color:#b7c9df}small{display:block}a{color:#6deac9}.eyebrow{letter-spacing:2px;color:#6deac9;font-size:13px}.meta{font-size:13px}.notice{padding:16px;background:#342b20;border-left:3px solid #f1c472}.scroll{overflow:auto}table{width:100%;border-collapse:collapse;white-space:nowrap;font-size:13px;font-variant-numeric:tabular-nums}th,td{padding:11px;border-bottom:1px solid #314158;text-align:left}tbody tr:hover{background:#13203a}th,article{background:#152339}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px}article{padding:16px;border-radius:10px}article ul{padding-left:18px;margin:0}input,select,button{background:#152339;color:white;border:1px solid #46617d;padding:10px;margin:6px 6px 6px 0;font:inherit;border-radius:6px}input{min-width:260px}button{cursor:pointer}svg{width:100%;min-width:650px;background:#152339}svg text{fill:#b7c9df;font-size:13px}details{margin:20px 0}summary{cursor:pointer;color:#6deac9}@media print{html{color-scheme:light}body{background:white;color:black}small,p{color:#333}button,input,select{display:none}th,article,svg{background:#eee}svg text{fill:#333}.scroll{overflow:visible}table{font-size:8px;white-space:normal}article{break-inside:avoid}a{color:#15584a}}"""
+
+METHODOLOGY = (
+    "순위·완료 랩·점수·격차는 session_result 원본 값입니다. API가 순위를 제공하지 않으면 임의로 순위를 매기지 않습니다.",
+    "퀄리파잉 Q1/Q2/Q3 기록은 API의 duration 배열만 사용합니다. 특정 단계 기록이 비어 있다는 이유만으로 탈락을 단정하지 않으며, 미진출·미출전·기록 삭제를 구분하려면 공식 판정과 대조해야 합니다.",
+    "관측 최속은 양수 랩타임 중 race_control에서 삭제가 확인된 랩을 제외한 최솟값입니다. 공식 유효 랩 판정과 다를 수 있습니다.",
+    "랩 중앙값과 스틴트 중앙값은 1랩, 피트 아웃 랩, 피트 진입 랩, 삭제 확인 랩, 시간이 누락된 랩을 제외하고 계산합니다. 연료량·트래픽·SC·VSC·트랙 변화는 보정하지 않으므로 순수 페이스나 롱런 우열을 단정할 수 없습니다. 스틴트별 표본 수를 함께 표시합니다.",
+    "피트 진입 수는 관측된 랩의 시간 범위 안에서만 집계하며, 타이어 교체 횟수나 실제 정차 시간을 뜻하지 않습니다.",
+    "공식 완료 랩(session_result)과 관측 랩 기록 수(laps)는 따로 집계합니다. 누락된 값은 0초나 0랩으로 바꾸지 않습니다.",
+    "스프린트 주말처럼 프랙티스 2·3이 열리지 않으면 '일정 없음'으로 표시합니다. 이 보고서는 지정된 5개 세션만 다루며 스프린트는 포함하지 않습니다.",
+    "원본 데이터와 수집 시각은 세션별 JSON 스냅샷에 보존합니다. 라이브 세션 중 공개 API 접근이 막히면 기존 스냅샷을 유지하고 다음 예약 실행에서 다시 조회합니다.",
+)
+
+CHART_CSS = ROOT / "tools" / "report_charts.css"
+CHART_JS = ROOT / "tools" / "report_charts.js"
+
+CHART_SECTION = """<section class="chart-workspace"><div class="chart-kicker">SESSION TELEMETRY</div><h2>랩타임 &amp; 섹터 분석</h2><div id="session-tabs" class="session-tabs" role="tablist" aria-label="세션 선택"></div><div id="chart-panel" role="tabpanel"><div class="chart-toolbar"><label for="chart-driver">드라이버 선택</label><select id="chart-driver"></select></div><p id="chart-summary" class="chart-caption"></p><article class="chart-card"><h3>랩타임 <small>점에 마우스를 올리거나 터치하면 0.001초 단위 기록이 표시됩니다</small></h3><div class="scroll"><svg id="chart-time" viewBox="0 0 1100 320" role="img" aria-label="랩타임 차트"></svg></div></article><h3 class="sector-heading">섹터별 선수 시간</h3><p class="sector-hint">같은 세션·드라이버의 섹터 1·2·3 기록입니다. 기록이 없는 랩 앞뒤는 선으로 잇지 않습니다.</p><article class="chart-card"><h3>섹터 1</h3><div class="scroll"><svg id="chart-s1" viewBox="0 0 1100 320" role="img" aria-label="섹터 1 차트"></svg></div></article><article class="chart-card"><h3>섹터 2</h3><div class="scroll"><svg id="chart-s2" viewBox="0 0 1100 320" role="img" aria-label="섹터 2 차트"></svg></div></article><article class="chart-card"><h3>섹터 3</h3><div class="scroll"><svg id="chart-s3" viewBox="0 0 1100 320" role="img" aria-label="섹터 3 차트"></svg></div></article></div><p class="chart-caption">빨간 점은 race_control에서 삭제가 확인된 랩입니다 · 키보드 Tab으로 점을 선택할 수 있습니다 · 느린 랩도 생략하지 않고 표시합니다</p></section><div id="chart-tooltip" class="chart-tooltip" role="status" aria-live="polite" hidden></div>"""
+
+
 def render(snapshots, output, now=None):
     now = now or datetime.now(timezone.utc)
-    sections, chart_data = [], []
-    summary = []
+    sections, chart_data, summary = [], [], []
     for item in snapshots:
         session = item["session"]
         name = session["session_name"]
         label = LABELS[name]
         data = item.get("data", {})
         rows = summarize(item) if data else []
+        count = f"{len(rows)}명" if rows else "데이터 없음"
         summary.append(
-            f'<li><a href="#{name.replace(" ", "-")}">{label}</a> · {len(rows)}명 · {esc(item["status"])}</li>'
+            f'<li><a href="#{anchor(name)}">{label}</a> · {count} · {esc(item["status"])}</li>'
         )
-        body = f'<h2 id="{name.replace(" ", "-")}">{label}</h2><p>{esc(item["status"])} · session_key {esc(session.get("session_key", "—"))} · 수집 시각 {esc(item.get("fetched_at", "—"))} UTC</p>'
+        fetched = item.get("fetched_at")
+        body = (
+            f'<h2 id="{anchor(name)}">{label}</h2>'
+            f'<p class="meta">{esc(item["status"])} · session_key {esc(session.get("session_key", "—"))}'
+            f' · 수집 시각 {esc(display_time(fetched) if fetched else "—")}</p>'
+        )
         if item.get("error"):
-            body += f'<p class="notice">이번 갱신 실패: {esc(item["error"])}. 기존 데이터가 있으면 마지막 성공 스냅샷을 표시합니다.</p>'
+            body += (
+                f'<p class="notice">이번 갱신에 실패했습니다({esc(item["error"])}). '
+                "이전에 성공한 스냅샷이 있으면 그 데이터를 표시합니다.</p>"
+            )
         if not rows:
             sections.append(
-                body + "<p>아직 수집된 데이터가 없습니다. 열리지 않았거나 데이터 제공을 기다리는 세션입니다.</p>"
+                body + "<p>아직 수집된 데이터가 없습니다. 세션이 열리지 않았거나 데이터 제공을 기다리는 중입니다.</p>"
             )
             continue
-        bests = [r["fastest"] for r in rows if r["fastest"] is not None]
-        best = min(bests) if bests else None
-        head = (
-            "<th>Q1</th><th>Q2</th><th>Q3</th><th>탈락 / 진출</th>"
-            if name == "Qualifying"
-            else "<th>관측 최속</th><th>최속 대비</th>"
-        )
-        records = []
-        for row in rows:
-            rank = row["position"] if row["position"] is not None else "—"
-            if name == "Qualifying":
-                q = row["q"]
-                phase = (
-                    "Q3 기록"
-                    if q[2] is not None
-                    else "Q2 기록 / Q3 없음"
-                    if q[1] is not None
-                    else "Q1 기록 / Q2 없음"
-                    if q[0] is not None
-                    else "단계 자료 없음"
-                )
-                extra = (
-                    "".join(f"<td>{seconds(v)}</td>" for v in q) + f"<td>{phase}</td>"
-                )
-            else:
-                delta = (
-                    f'+{row["fastest"] - best:.3f}s'
-                    if row["fastest"] is not None and best is not None
-                    else "—"
-                )
-                extra = f'<td>{seconds(row["fastest"])}</td><td>{delta}</td>'
-            gap = row["gap"]
-            if isinstance(gap, list):
-                gap = " / ".join(str(x) if x is not None else "—" for x in gap)
-            elif isinstance(gap, (float, int)):
-                gap = f"+{gap:.3f}s"
-            records.append(
-                f'<tr data-search="{esc((row["name"] + " " + row["team"]).lower())}"><td>{rank}</td><td><b>#{row["number"]} {esc(row["name"])}</b><small>{esc(row["team"])}</small></td><td>{row["status"]}</td>{extra}<td>{seconds(row["median"])}<small>표본 {row["samples"]}랩</small></td><td>{row["completed"] if row["completed"] is not None else "—"} / {row["records"]}</td><td>{esc(gap if gap is not None else "—")}</td><td>{row["points"] if row["points"] is not None else "—"}</td><td>{row["pits"]}</td></tr>'
-            )
-            chart_data.append(dict(row, session=label))
-        body += f'<div class="scroll result-table"><table><thead><tr><th>API 순위</th><th>드라이버 / 팀</th><th>상태</th>{head}<th>랩 중앙값</th><th>완료 / 기록 랩</th><th>API 선두 격차</th><th>점수</th><th>피트 진입</th></tr></thead><tbody>{"".join(records)}</tbody></table></div>'
-        body += (
-            '<details><summary>전체 선수 타이어 스틴트 · 롱런 참고 지표</summary><div class="cards">'
-        )
-        for row in rows:
-            stint_text = (
-                "".join(
-                    f'<li>{esc(s.get("compound", "UNKNOWN"))} L{s["lap_start"]}–{s.get("lap_end") or "?"} · 중앙값 {seconds(s["median"])} / {s["sample_count"]}랩</li>'
-                    for s in row["stints"]
-                )
-                or "<li>스틴트 데이터 없음</li>"
-            )
-            body += f'<article><h3>#{row["number"]} {esc(row["name"])}</h3><ul>{stint_text}</ul></article>'
-        body += "</div></details>"
+        body += render_table(name, rows) + render_stints(rows)
+        chart_data.extend(dict(row, session=label) for row in rows)
         sections.append(body)
     location = next(
         (
@@ -280,37 +368,28 @@ def render(snapshots, output, now=None):
         ),
         "Grand Prix",
     )
-    safe_json = json.dumps(chart_data, ensure_ascii=False).replace("</", "<\\/")
-    page = """<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>F1 주말 전체 선수 보고서</title>
-<style>html{color-scheme:dark}body{background:#0b1321;color:#edf4fc;font:15px/1.7 system-ui,sans-serif;margin:0}main{max-width:1500px;margin:auto;padding:36px 22px}h1{font-size:40px}h2{margin-top:48px;border-top:2px solid #335170;padding-top:22px}p,small{color:#b7c9df}small{display:block}a{color:#6deac9}.notice{padding:16px;background:#342b20;border-left:3px solid #f1c472}.scroll{overflow:auto}table{width:100%;border-collapse:collapse;white-space:nowrap;font-size:13px}th,td{padding:11px;border-bottom:1px solid #314158;text-align:left}th,article{background:#152339}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px}article{padding:16px;border-radius:10px}input,select,button{background:#152339;color:white;border:1px solid #46617d;padding:10px;margin:6px;font:inherit;border-radius:6px}svg{width:100%;min-width:650px;background:#152339}details{margin:20px 0}summary{cursor:pointer;color:#6deac9}@media print{html{color-scheme:light}body{background:white;color:black}small,p{color:#333}button,input,select{display:none}th,article,svg{background:#eee}.scroll{overflow:visible}table{font-size:8px;white-space:normal}article{break-inside:avoid}a{color:#15584a}}</style>
-<main><header><p>SEONY F1 / WEEKEND REPORT</p><h1>@@LOCATION@@ · 주말 전체 선수 보고서</h1><p>프랙티스 1·2·3 + 퀄리파잉 + 레이스<br>생성 시각 @@NOW@@ UTC / 원본 OpenF1 API 기준</p><button onclick="document.querySelectorAll('details').forEach(d=>d.open=true);window.print()">인쇄 / PDF 저장</button></header><p class="notice">FIA 공식 결과와 독립 대조하지 않은 OpenF1 데이터 보고서입니다. 데이터 대기·누락·갱신 실패를 구분하고, 모든 선수는 각 세션의 drivers / 결과 / 랩 응답 합집합으로 포함합니다. 경기 전후 일정에 따라 아직 열리지 않은 세션이 있습니다.</p><ul>@@SUMMARY@@</ul><input id="search" placeholder="전체 표에서 선수 / 팀 검색" aria-label="선수 팀 검색">@@SECTIONS@@
-<section class="chart-workspace"><div class="chart-kicker">SESSION TELEMETRY</div><h2>랩타임 &amp; 섹터 분석</h2><div id="session-tabs" class="session-tabs" role="tablist" aria-label="세션 선택"></div><div id="chart-panel" role="tabpanel"><div class="chart-toolbar"><label for="chart-driver">드라이버 선택</label><select id="chart-driver" aria-label="차트 드라이버 선택"></select></div><p id="chart-summary" class="chart-caption"></p><article class="chart-card"><h3>랩타임 <small>점에 마우스를 올리거나 터치하면 0.001초 단위 기록 표시</small></h3><div class="scroll"><svg id="chart-time" viewBox="0 0 1100 320" role="img" aria-label="랩타임 차트"></svg></div></article><h3 class="sector-heading">섹터별 선수 시간</h3><p class="sector-hint">동일한 세션·드라이버의 섹터 1·2·3 기록 · 누락값은 연결하지 않습니다.</p><article class="chart-card"><h3>섹터 1</h3><div class="scroll"><svg id="chart-s1" viewBox="0 0 1100 320" role="img" aria-label="섹터 1 차트"></svg></div></article><article class="chart-card"><h3>섹터 2</h3><div class="scroll"><svg id="chart-s2" viewBox="0 0 1100 320" role="img" aria-label="섹터 2 차트"></svg></div></article><article class="chart-card"><h3>섹터 3</h3><div class="scroll"><svg id="chart-s3" viewBox="0 0 1100 320" role="img" aria-label="섹터 3 차트"></svg></div></article></div><p class="chart-caption">빨간 점: 삭제 확인 랩 · 키보드 Tab으로 점 선택 가능 · 긴 랩도 그대로 표시</p></section><div id="chart-tooltip" class="chart-tooltip" role="status" aria-live="polite" hidden></div>
-<h2>지표 해석과 한계</h2><ul><li>순위·완료 랩·포인트·격차는 session_result 원본입니다. API가 순위를 제공하지 않으면 임의 순위를 만들지 않습니다.</li><li>퀄리파잉 Q1/Q2/Q3는 API duration 배열만 사용합니다. 빈 단계만으로 탈락을 단정하지 않으며, 미진출·미출전·기록 삭제의 구분은 공식 판정 대조가 필요합니다.</li><li>관측 최속은 양수 랩 기록에서 race_control의 삭제 확인 랩을 제외한 최솟값입니다. 공식 유효 랩 판정과 다를 수 있습니다.</li><li>중앙값 및 스틴트 중앙값은 1랩·피트 아웃·피트 진입·삭제 확인·누락 시간을 제외합니다. 연료량·트래픽·SC·VSC·트랙 변화는 보정하지 않아 순수 페이스나 롱런 우열을 단정하지 않습니다. 스틴트별 표본 수를 함께 표시합니다.</li><li>피트 진입 수는 관측 랩의 시간 범위 안에서만 집계하며 타이어 교체 횟수나 실제 정차시간을 뜻하지 않습니다.</li><li>세션별 공식 완료 랩과 관측 랩 기록 수는 별개입니다. 누락을 0초나 0랩으로 바꾸지 않습니다.</li><li>스프린트 주말 등에서 프랙티스 2·3이 열리지 않으면 일정 없음으로 표시합니다. 이 보고서의 대상은 지정된 5개 세션이며 스프린트는 포함하지 않습니다.</li><li>원본과 수집 시각은 각 세션 JSON 스냅샷에 보존합니다. 라이브 진행 중 공개 API가 차단되면 기존 스냅샷을 유지하고 다음 예약 실행에서 재조회합니다.</li></ul><h2>출처</h2><p><a href="https://api.openf1.org/v1/sessions?meeting_key=@@MEETING@@">OpenF1 주말 세션 목록</a> · 각 session_key의 drivers, session_result, laps, stints, pit, race_control 엔드포인트.<br>이 HTML은 인터넷 없이 검색·차트·표를 사용할 수 있습니다.</p></main>
-<style>@@CHART_CSS@@</style><script>@@CHART_JS@@</script></html>"""
-    values = {
-        "LOCATION": esc(location),
-        "NOW": now.isoformat(),
-        "SUMMARY": "".join(summary),
-        "SECTIONS": "".join(sections),
-        "CHART_CSS": (ROOT / "tools/report_charts.css").read_text(),
-        "CHART_JS": (ROOT / "tools/report_charts.js")
-        .read_text()
-        .replace("REPORT_ROWS", safe_json),
-        "MEETING": str(
-            next(
-                (
-                    s["session"].get("meeting_key")
-                    for s in snapshots
-                    if s["session"].get("meeting_key")
-                ),
-                "",
-            )
+    meeting = next(
+        (
+            s["session"].get("meeting_key")
+            for s in snapshots
+            if s["session"].get("meeting_key")
         ),
-    }
-    for key, value in values.items():
-        page = page.replace("@@" + key + "@@", value)
+        "",
+    )
+    safe_json = json.dumps(chart_data, ensure_ascii=False).replace("</", "<\\/")
+    methodology = "".join(f"<li>{text}</li>" for text in METHODOLOGY)
+    chart_css = CHART_CSS.read_text(encoding=ENCODING)
+    chart_js = CHART_JS.read_text(encoding=ENCODING).replace("REPORT_ROWS", safe_json)
+    page = f"""<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(location)} · F1 주말 전체 선수 보고서</title>
+<style>{STYLE}</style></head><body>
+<main><header><p class="eyebrow">SEONY F1 / WEEKEND REPORT</p><h1>{esc(location)} · 주말 전체 선수 보고서</h1><p>프랙티스 1·2·3 + 퀄리파잉 + 레이스<br>생성 시각 {display_time(now)} · 데이터 출처 OpenF1 API</p><button type="button" onclick="document.querySelectorAll('details').forEach(d=>d.open=true);window.print()">인쇄 / PDF 저장</button></header>
+<p class="notice">OpenF1 API 데이터로 만든 보고서이며, FIA 공식 결과와 별도로 대조하지 않았습니다. 데이터 대기·누락·갱신 실패는 구분해 표시합니다. 각 세션의 선수 목록은 drivers·session_result·laps 응답에 나온 선수를 모두 합친 것입니다. 일정에 따라 아직 열리지 않은 세션이 있을 수 있습니다.</p>
+<ul>{"".join(summary)}</ul><input id="search" type="search" placeholder="전체 표에서 선수 / 팀 검색" aria-label="선수 또는 팀 검색">{"".join(sections)}
+{CHART_SECTION}
+<h2>지표 해석과 한계</h2><ul>{methodology}</ul><h2>출처</h2><p><a href="https://api.openf1.org/v1/sessions?meeting_key={esc(meeting)}">OpenF1 주말 세션 목록</a> · 각 session_key에 대한 drivers, session_result, laps, stints, pit, race_control 엔드포인트<br>이 HTML 파일 하나로 인터넷 연결 없이 표·검색·차트를 사용할 수 있습니다.</p></main>
+<style>{chart_css}</style><script>{chart_js}</script></body></html>"""
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(page)
+    output.write_text(page, encoding=ENCODING)
 
 
 def collect(meeting_key=None, output_root=None):
@@ -344,27 +423,24 @@ def collect(meeting_key=None, output_root=None):
             continue
         session = max(candidates, key=lambda s: stamp(s["date_start"]))
         path = directory / "data" / f'{session["session_key"]}.json'
-        previous = json.loads(path.read_text()) if path.exists() else None
+        previous = load_json(path) if path.exists() else None
         if session.get("is_cancelled"):
             snapshots.append({"session": session, "status": "취소", "data": {}})
             continue
         if now < stamp(session["date_end"]) + timedelta(minutes=30):
             snapshots.append(
                 previous
-                or {"session": session, "status": "종료 후 30분까지 수집 대기", "data": {}}
+                or {
+                    "session": session,
+                    "status": "수집 대기 (세션 종료 30분 후 시작)",
+                    "data": {},
+                }
             )
             continue
         try:
             data = {
                 endpoint: fetch(endpoint, {"session_key": session["session_key"]})
-                for endpoint in (
-                    "drivers",
-                    "session_result",
-                    "laps",
-                    "stints",
-                    "pit",
-                    "race_control",
-                )
+                for endpoint in ENDPOINTS
             }
             if not data["drivers"] or not data["laps"] or not data["session_result"]:
                 raise ValueError(
@@ -390,6 +466,21 @@ def collect(meeting_key=None, output_root=None):
     return 1 if errors else 0
 
 
+def load_offline(directory):
+    snapshots = [load_json(p) for p in sorted((directory / "data").glob("*.json"))]
+    snapshots = [s for s in snapshots if isinstance(s, dict) and "session" in s]
+    if not snapshots:
+        raise ValueError("No session snapshots found")
+    by_name = {s["session"]["session_name"]: s for s in snapshots}
+    return [
+        by_name.get(
+            n,
+            {"session": {"session_name": n}, "status": "로컬 스냅샷 없음", "data": {}},
+        )
+        for n in SESSION_NAMES
+    ]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -406,22 +497,7 @@ def main():
     args = parser.parse_args()
     try:
         if args.offline:
-            snapshots = [
-                json.loads(p.read_text())
-                for p in (args.offline / "data").glob("*.json")
-            ]
-            snapshots = [s for s in snapshots if isinstance(s, dict) and "session" in s]
-            if not snapshots:
-                raise ValueError("No session snapshots found")
-            by_name = {s["session"]["session_name"]: s for s in snapshots}
-            ordered = [
-                by_name.get(
-                    n,
-                    {"session": {"session_name": n}, "status": "로컬 스냅샷 없음", "data": {}},
-                )
-                for n in SESSION_NAMES
-            ]
-            render(ordered, args.offline / "weekend-report.html")
+            render(load_offline(args.offline), args.offline / "weekend-report.html")
             return 0
         return collect(args.meeting, args.output_root)
     except (requests.RequestException, ValueError) as exc:
