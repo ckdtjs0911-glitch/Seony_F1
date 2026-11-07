@@ -66,8 +66,8 @@ function draw(){hideTooltip();const row=rows.find(r=>r.session===activeSession&&
 function updateDriverOptions(){
   const previous=driverSelect.value;
   const sessionRows=rows.filter(r=>r.session===activeSession);
-  const query=searchKey(document.getElementById('chart-search')?.value||'');
-  const matched=sessionRows.filter(r=>searchKey(r.name+' '+r.team).includes(query));
+  const query=document.getElementById('chart-search')?.value||'';
+  const matched=sessionRows.filter(r=>matchesSearch(r.name+' '+r.team,query));
   driverSelect.replaceChildren();
   for(const r of matched){const o=document.createElement('option');o.value=r.number;o.textContent=`${r.position != null ? "P"+r.position : "P—"} #${r.number} ${r.name} - ${r.team}`;driverSelect.append(o);}
   if([...driverSelect.options].some(o=>o.value===previous))driverSelect.value=previous;
@@ -121,11 +121,21 @@ function searchKey(value){
   for(const [alias,team] of Object.entries({...teamAliases,...driverAliases}).sort((a,b)=>b[0].length-a[0].length)){text=text.split(alias).join(team);if(alias.includes(' '))text=text.split(alias.replace(/\s+/g,'')).join(team);}
   return text.replace(/\s+/g,'');
 }
+function matchesSearch(value,query){
+  const raw=query.normalize('NFKC').trim().toLowerCase().replace(/\s+/g,'');
+  const haystack=searchKey(value);
+  if(!raw)return true;
+  const teamMatches=Object.entries(teamAliases).filter(([alias])=>alias.replace(/\s+/g,'').startsWith(raw));
+  // Short Korean team prefixes take priority over ambiguous driver initials.
+  if(/^[가-힣]{1,2}$/.test(raw)&&teamMatches.length)return teamMatches.some(([,team])=>haystack.includes(searchKey(team)));
+  if(haystack.includes(searchKey(query)))return true;
+  return Object.entries({...teamAliases,...driverAliases}).some(([alias,name])=>alias.replace(/\s+/g,'').startsWith(raw)&&haystack.includes(searchKey(name)));
+}
 const pagers=[...document.querySelectorAll('.result-table')].map((container,index)=>{
   const all=[...container.querySelectorAll('tbody tr[data-search]')];
   const nav=document.createElement('nav');nav.className='table-pagination';nav.setAttribute('aria-label',`결과표 ${index+1} 페이지`);container.after(nav);
   let page=0;
-  function render(reset=false){if(reset)page=0;const query=searchKey(document.getElementById('search')?.value||'');const filtered=all.filter(r=>searchKey(r.dataset.search).includes(query));const count=Math.max(1,Math.ceil(filtered.length/10));page=Math.min(page,count-1);all.forEach(r=>r.hidden=true);filtered.slice(page*10,(page+1)*10).forEach(r=>r.hidden=false);nav.replaceChildren();
+  function render(reset=false){if(reset)page=0;const query=document.getElementById('search')?.value||'';const filtered=all.filter(r=>matchesSearch(r.dataset.search,query));const count=Math.max(1,Math.ceil(filtered.length/10));page=Math.min(page,count-1);all.forEach(r=>r.hidden=true);filtered.slice(page*10,(page+1)*10).forEach(r=>r.hidden=false);nav.replaceChildren();
     function button(label,target,disabled=false){const b=document.createElement('button');b.type='button';b.textContent=label;b.disabled=disabled;b.addEventListener('click',()=>{page=target;render();});nav.append(b);return b;}
     button('이전',page-1,page===0);
     for(let i=0;i<count;i++){const start=i*10+1,end=Math.min((i+1)*10,filtered.length);const b=button(filtered.length?`${start}–${end}`:'0명',i,!filtered.length);if(i===page)b.setAttribute('aria-current','page');}
