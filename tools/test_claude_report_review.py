@@ -126,6 +126,18 @@ class ClaudeComparisonFailureTests(unittest.TestCase):
                 all(x["status"] == "failed" for x in status["reviews"].values())
             )
 
+    def test_error_categories_do_not_include_raw_error_or_token(self):
+        for error, expected in (
+            ("API Error: 401 token-secret-value", "claude_authentication_failed"),
+            ("You've hit your limit token-secret-value", "claude_usage_limit"),
+            ("API Error: 403 token-secret-value", "claude_access_denied"),
+            ("model_not_found token-secret-value", "claude_model_unavailable"),
+            ("Connection error token-secret-value", "claude_connection_failed"),
+        ):
+            with self.subTest(expected=expected):
+                self.assertEqual(review.failure_reason(error), expected)
+                self.assertNotIn("token-secret-value", review.failure_reason(error))
+
 
 if __name__ == "__main__":
     unittest.main()

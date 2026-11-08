@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 from datetime import datetime, timezone
@@ -21,6 +22,60 @@ MODES = {
         "수정안 제시와 실제 적용·검증을 명확히 구분해. 문제가 없으면 수정 불필요라고 적어."
     ),
 }
+
+
+def failure_reason(diagnostic):
+    """Classify errors without persisting CLI output, credentials or account data."""
+    text = str(diagnostic).lower()
+    if any(
+        word in text
+        for word in (
+            "invalid api key",
+            "invalid token",
+            "token has expired",
+            "token expired",
+            "token revoked",
+            "authentication_error",
+            "invalid authentication",
+            "unauthorized",
+            "please run /login",
+            "not logged in",
+        )
+    ) or re.search(r"(?:api error|http)[^\n]{0,15}\b401\b", text):
+        return "claude_authentication_failed"
+    if any(
+        word in text
+        for word in (
+            "rate_limit",
+            "rate limit",
+            "usage limit",
+            "hit your limit",
+            "hit the limit",
+            "credit balance",
+            "insufficient_quota",
+        )
+    ) or re.search(r"(?:api error|http)[^\n]{0,15}\b429\b", text):
+        return "claude_usage_limit"
+    if any(
+        word in text
+        for word in (
+            "permission_denied",
+            "access denied",
+            "forbidden",
+            "does not have access",
+        )
+    ) or re.search(r"(?:api error|http)[^\n]{0,15}\b403\b", text):
+        return "claude_access_denied"
+    if any(
+        word in text for word in ("model_not_found", "model not found", "invalid model")
+    ):
+        return "claude_model_unavailable"
+    if any(
+        word in text
+        for word in ("connection error", "econnreset", "enotfound", "timed out")
+    ):
+        return "claude_connection_failed"
+    return "claude_request_failed"
 
 
 def changed_reports(root, compare_ref="HEAD"):
@@ -163,7 +218,12 @@ def run_reviews(root, output, local_login=False, apply=False, compare_ref="HEAD"
                     if structured["patch"]:
                         review += "\n\n```diff\n" + structured["patch"] + "\n```"
                 if result.returncode or response.get("is_error") or not review:
-                    item = {"status": "failed", "reason": "claude_request_failed"}
+                    item = {
+                        "status": "failed",
+                        "reason": failure_reason(
+                            str(response.get("result", "")) + " " + result.stderr
+                        ),
+                    }
                 else:
                     (output / f"{mode}.md").write_text(review + "\n", encoding="utf-8")
                     item = {"status": "completed", "file": f"{mode}.md"}
