@@ -44,14 +44,7 @@ jobs:
             fi
             args+=(--meeting "$MEETING")
           fi
-          python tools/weekend_report.py --output-root .report-staging "${args[@]}"
-      - name: Optional AI review (base reports work without API keys)
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          REPORT_CODEX_MODEL: ${{ vars.REPORT_CODEX_MODEL }}
-          REPORT_CLAUDE_MODEL: ${{ vars.REPORT_CLAUDE_MODEL }}
-        run: python tools/review_pipeline.py --staging .report-staging --destination reports --optional
+          python tools/weekend_report.py --output-root reports "${args[@]}"
       - name: Update cumulative year, Grand Prix and session archive
         run: python tools/build_archive.py
       - name: Retain reports and snapshots for download

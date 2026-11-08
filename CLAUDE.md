@@ -53,6 +53,4 @@ Codex를 쓸 수 없으면(미설치, 미로그인 등) 사용자에게 알리�
 ## 참고
 
 - 자동 보고서 생성: `tools/weekend_report.py`, `.github/workflows/weekend-report.yml` (`reports/AUTOMATION.md` 참고)
-- `tools/review_pipeline.py`는 GitHub Actions에서 API 키를 사용해 실행되는 자동 첨삭 단계다.
-  위 워크플로와 같은 **Claude 초안 → Codex 검토 → Claude 최종** 순서로 API를 호출한다.
-  대화형 규칙(파일 저장, 사용자 보고 등)은 적용하지 않는다.
+- GitHub Actions 보고서는 Python으로 자동 생성하며 Claude API 자동 첨삭 단계는 제거했습니다.
