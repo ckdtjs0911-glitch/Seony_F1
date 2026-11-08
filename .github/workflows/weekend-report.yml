@@ -14,12 +14,11 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: weekend-report
-  cancel-in-progress: false
-
 jobs:
   report:
+    concurrency:
+      group: weekend-report
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -52,11 +51,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: f1-weekend-reports
-          path: |
-            reports/weekend-*/
-            reports/index.html
-            reports/current-year.html
-            reports/catalog/
+          path: reports/
           if-no-files-found: ignore
           retention-days: 30
       - name: Commit successfully generated reports

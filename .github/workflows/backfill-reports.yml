@@ -5,11 +5,11 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
-concurrency:
-  group: weekend-report
-  cancel-in-progress: false
 jobs:
   backfill:
+    concurrency:
+      group: weekend-report
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 55
     steps:

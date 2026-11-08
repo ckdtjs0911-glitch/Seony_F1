@@ -46,6 +46,8 @@ class ClaudeReportReviewTests(unittest.TestCase):
         for call in run.call_args_list:
             command = call.args[0]
             self.assertIn("Read,Glob,Grep", command)
+            self.assertIn("mcp__*", command)
+            self.assertIn("--strict-mcp-config", command)
             self.assertNotIn("--dangerously-skip-permissions", command)
 
     def test_api_error_is_never_recorded_as_success(self):
@@ -71,6 +73,20 @@ class ClaudeReportReviewTests(unittest.TestCase):
                     x["reason"] == "no_changed_reports"
                     for x in status["reviews"].values()
                 )
+            )
+
+
+class ClaudeComparisonFailureTests(unittest.TestCase):
+    def test_git_failure_is_recorded_instead_of_raising(self):
+        with tempfile.TemporaryDirectory() as folder, patch.object(
+            review,
+            "changed_reports",
+            side_effect=subprocess.CalledProcessError(1, "git"),
+        ):
+            status = review.run_reviews(".", folder)
+            self.assertTrue((Path(folder) / "status.json").exists())
+            self.assertTrue(
+                all(x["status"] == "failed" for x in status["reviews"].values())
             )
 
 

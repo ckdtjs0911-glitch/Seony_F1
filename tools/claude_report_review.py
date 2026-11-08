@@ -40,8 +40,23 @@ def run_reviews(root, output, local_login=False):
     }
     authenticated = bool(os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")) or local_login
     cli = shutil.which("claude") if authenticated else None
-    files = changed_reports(root)
+
+    def save_status():
+        (output / "status.json").write_text(
+            json.dumps(status, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+
+    try:
+        files = changed_reports(root)
+    except (OSError, subprocess.CalledProcessError):
+        status["reviews"] = {
+            mode: {"status": "failed", "reason": "report_comparison_failed"}
+            for mode in MODES
+        }
+        save_status()
+        return status
     status["changed_reports"] = files
+    save_status()
     for mode, instruction in MODES.items():
         (output / f"{mode}.md").unlink(missing_ok=True)
         if not files:
@@ -51,6 +66,8 @@ def run_reviews(root, output, local_login=False):
         elif not cli:
             item = {"status": "failed", "reason": "claude_cli_unavailable"}
         else:
+            status["reviews"][mode] = {"status": "running"}
+            save_status()
             prompt = (
                 "F1 자동 생성 보고서를 한국어로 검토해.\n"
                 "이것은 플러그인 슬래시 명령이 아니라 Claude CLI 검토 작업이다.\n"
@@ -74,14 +91,22 @@ def run_reviews(root, output, local_login=False):
                         "json",
                         "--tools",
                         "Read,Glob,Grep",
-                        "--permission-mode",
-                        "plan",
+                        "--disallowedTools",
+                        "mcp__*",
+                        "--strict-mcp-config",
+                        "--mcp-config",
+                        '{"mcpServers":{}}',
+                        "--settings",
+                        '{"disableAllHooks":true}',
                     ],
                     input=prompt,
                     cwd=root,
                     text=True,
                     capture_output=True,
                     check=False,
+                    env={
+                        k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"
+                    },
                 )
                 response = json.loads(result.stdout)
                 if not isinstance(response, dict):
@@ -96,10 +121,8 @@ def run_reviews(root, output, local_login=False):
                 # Never persist raw CLI diagnostics: they can contain auth metadata.
                 item = {"status": "failed", "reason": "claude_execution_failed"}
         status["reviews"][mode] = item
-        print(f"Claude {mode}: {item['status']}")
-    (output / "status.json").write_text(
-        json.dumps(status, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
+        save_status()
+        print(f"Claude {mode}: {item['status']}", flush=True)
     return status
 
 

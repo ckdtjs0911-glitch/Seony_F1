@@ -22,13 +22,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Replace checkout reports with the generated snapshot (including deletions)
+        run: python -c 'import shutil; shutil.rmtree("reports", ignore_errors=True)'
       - uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.artifact_name }}
           path: reports
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
       - uses: actions/setup-node@v4
         if: env.CLAUDE_REVIEW_ENABLED == 'true'
         with:

@@ -92,11 +92,14 @@ python -m venv .venv
 - 일반 검토: 데이터·수치·설명, 구조·UI 회귀, 한국어 문구.
 - 반대 관점 검토: 누락·삭제/복원 랩, 타이어·퀄리파잉·시간대 등의 경계 조건과 잘못된 전제.
 - 두 검토 모두 읽기 전용입니다. 문구·코드 자동 수정, 커밋, 푸시를 하지 않습니다.
+  파일 읽기·검색 도구만 제공하고 MCP 도구와 사용자 훅을 차단합니다.
 - 결과는 Actions artifact의 `claude-review-f1-weekend-reports` 또는
   `claude-review-historical-f1-reports`에 30일간 저장합니다.
   `review.md`, `adversarial-review.md`, 실행 상태 `status.json`을 확인할 수 있습니다.
 - 인증이 없으면 `skipped`, CLI·인증·요청 실패 시 `failed`로 기록합니다. 검토 실패 때문에
   이미 생성·저장한 보고서를 취소하지 않습니다. 발견사항은 사람이 검토해 반영합니다.
+  실행 중 상태도 저장하며, 강제 종료된 실행의 기록은 `running`으로 남을 수 있습니다.
+  수집 작업끼리만 동시 실행을 막으므로, 검토가 오래 걸려도 다음 수집을 대기시키지 않습니다.
 
 GitHub Actions는 로컬 Claude 로그인 상태를 공유하지 않습니다. Claude Code에서
 `claude setup-token`으로 자동화용 토큰을 만든 뒤, **이 저장소**의 Settings → Secrets and
