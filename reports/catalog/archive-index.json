@@ -3644,7 +3644,10 @@
     "gp": "브라질 그랑프리 · Interlagos",
     "session": "레이스",
     "date": "2026-11-08T17:00:00+00:00",
-    "status": "예정 / 진행 중"
+    "attachment_assets": [
+      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
+    ],
+    "status": "수집 완료 (OpenF1 기준)"
   },
   {
     "year": 2026,
