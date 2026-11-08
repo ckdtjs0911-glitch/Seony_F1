@@ -7,6 +7,8 @@ permissions:
   contents: write
 jobs:
   backfill:
+    outputs:
+      source_sha: ${{ steps.report_commit.outputs.sha }}
     concurrency:
       group: weekend-report
       cancel-in-progress: false
@@ -31,6 +33,7 @@ jobs:
           path: reports/
           retention-days: 30
       - name: Save cumulative reports
+        id: report_commit
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -39,10 +42,12 @@ jobs:
             git commit -m 'Fill historical F1 report gaps'
             git push
           fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
   claude-review:
     needs: backfill
     uses: ./.github/workflows/claude-report-review.yml
     with:
       artifact_name: historical-f1-reports
+      source_sha: ${{ needs.backfill.outputs.source_sha }}
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

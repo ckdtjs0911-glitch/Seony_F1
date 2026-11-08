@@ -53,6 +53,7 @@ Codex를 쓸 수 없으면(미설치, 미로그인 등) 사용자에게 알리�
 ## 참고
 
 - 자동 보고서 생성: `tools/weekend_report.py`, `.github/workflows/weekend-report.yml` (`reports/AUTOMATION.md` 참고)
-- GitHub Actions 보고서는 Python으로 자동 생성합니다. 자동 첨삭은 하지 않으며,
-  인증이 설정되면 별도 작업에서 Claude CLI 일반 검토 후 rescue 문제 조사·수정안 작성을 실행합니다.
-  반대 관점 검토는 실행하지 않습니다. 결과는 Actions artifact에 저장하고 보고서를 자동 수정하지 않습니다.
+- GitHub Actions 보고서는 Python으로 자동 생성합니다. 인증이 설정되면 별도 작업에서
+  Claude CLI 일반 검토 후 rescue 수정안을 만듭니다. 별도 복사본에서 테스트·재생성에 성공한
+  생성 코드와 보고서만 자동 커밋합니다. 원본 데이터는 수정하지 않습니다.
+  반대 관점 검토는 실행하지 않으며, 더 최신 보고서가 있으면 오래된 수정안은 반영하지 않습니다.

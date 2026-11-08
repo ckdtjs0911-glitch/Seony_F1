@@ -79,29 +79,39 @@ python -m venv .venv
 ## 보고서 자동 생성
 
 보고서 수집·계산·HTML 생성은 Python 코드로 실행합니다. 데이터 수집 후 누적·올해 전용
-보고서를 함께 갱신합니다. 보고서 문구를 API로 자동 수정하는 기존 첨삭 파이프라인은 사용하지
-않습니다. 과거 editorial-review.json은 이전 실행 기록입니다.
+보고서를 함께 갱신하고 먼저 저장합니다. Claude 인증이 있으면 아래 검토·rescue 단계를
+추가 실행해 검증된 수정사항을 자동 반영합니다. 과거 editorial-review.json은 이전 실행 기록입니다.
 
-### Claude 일반 검토 + rescue 문제 해결안
+### Claude 일반 검토 + rescue 자동 수정
 
 주말 자동 생성과 과거 자료 수집 워크플로 모두 보고서 저장 성공 후 별도 작업으로
 `.github/workflows/claude-report-review.yml`을 호출합니다. Claude CLI가 일반 검토 후
 rescue를 순서대로 실행합니다. `/cc:review`, `/cc:rescue` 플러그인 명령 자체를 호출하는
-방식은 아니며, 같은 목적의 일반 검토와 문제 조사·수정안 작성을 별도 요청으로 보냅니다.
+방식은 아니며, 같은 목적의 일반 검토와 문제 조사·수정 패치 작성을 별도 요청으로 보냅니다.
 `/cc:adversarial-review`는 실행하지 않습니다.
 
 - 일반 검토: 데이터·수치·설명, 구조·UI 회귀, 한국어 문구.
-- rescue: 일반 검토 결과를 전달받아 지적을 검증하고 원인·최소 수정 패치·검증 방법을 제안합니다.
-  일반 검토가 실패해도 원본을 직접 확인하며, 실제 수정·테스트 완료로 표시하지 않습니다.
-- 두 단계 모두 읽기 전용입니다. 문구·코드 자동 수정, 커밋, 푸시를 하지 않습니다.
-  파일 읽기·검색 도구만 제공하고 MCP 도구와 사용자 훅을 차단합니다.
+- rescue: 일반 검토 결과를 전달받아 지적을 검증하고 최소 수정 패치를 만듭니다.
+  문제가 없으면 수정하지 않습니다. 일반 검토가 실패해도 원본을 직접 확인합니다.
+- Claude에는 파일 읽기·검색 도구만 제공하고 MCP 도구와 사용자 훅을 차단합니다.
+  실제 수정·테스트·재생성·커밋은 아래 검증 프로그램이 수행합니다.
+- `tools/report_rescue.py`는 별도 복사본에서 수정안을 적용하고 전체 단위 테스트를 실행합니다.
+  차트 JS를 고쳤으면 문법 검사도 수행합니다. 저장된 원본 스냅샷으로 세션별 보고서와
+  누적·올해 보고서를 다시 생성합니다. 외부 OpenF1 자료를 새로 요청하지 않습니다.
+- 자동 수정 대상은 보고서 생성·표시 코드 7개(`weekend_report.py`, `build_archive.py`,
+  `report_charts.js/css`, `race_events.py`, `race_attachments.py`, `race_pitstops.py`)와
+  이 코드로 재생성한 HTML입니다. JSON 원본·워크플로·테스트·기타 파일이 바뀌면 거부합니다.
+- 모든 검증에 성공한 수정만 별도 게시 작업이 `main`에 일반 커밋·푸시합니다.
+  검토한 원본 커밋과 현재 원격 커밋이 다르면 자동 적용을 건너뜁니다. 강제 푸시는 하지 않습니다.
 - 결과는 Actions artifact의 `claude-review-f1-weekend-reports` 또는
   `claude-review-historical-f1-reports`에 30일간 저장합니다.
   `review.md`, `rescue.md`, 실행 상태 `status.json`을 확인할 수 있습니다.
-- 인증이 없으면 `skipped`, CLI·인증·요청 실패 시 `failed`로 기록합니다. 검토 실패 때문에
-  이미 생성·저장한 보고서를 취소하지 않습니다. 발견사항은 사람이 검토해 반영합니다.
+  수정 시 제안 패치·검증 로그·검증된 패치와 체크섬도 포함합니다. 실제 게시 결과는
+  `claude-rescue-publish-<원본 artifact 이름>`의 `publish-status.json`에서 확인합니다.
+- 인증이 없으면 `skipped`, CLI·인증·요청 실패 시 `failed`, 수정안 검증 실패 시
+  `repair.status: rejected`로 기록합니다. 이 경우 이미 생성·저장한 원본 보고서를 유지합니다.
   실행 중 상태도 저장하며, 강제 종료된 실행의 기록은 `running`으로 남을 수 있습니다.
-  수집 작업끼리만 동시 실행을 막으므로, 검토가 오래 걸려도 다음 수집을 대기시키지 않습니다.
+  수집·수정 게시 작업끼리만 동시 실행을 막으므로, 검토가 오래 걸려도 다음 수집을 대기시키지 않습니다.
 
 GitHub Actions는 로컬 Claude 로그인 상태를 공유하지 않습니다. Claude Code에서
 `claude setup-token`으로 자동화용 토큰을 만든 뒤, **이 저장소**의 Settings → Secrets and
@@ -115,6 +125,10 @@ Git 기준으로 수정·추가·삭제된 `reports/` 파일이 없으면 두 �
 ```bash
 python tools/claude_report_review.py --local-login --output-dir /tmp/f1-claude-review
 ```
+
+로컬 기본 실행은 수정안을 제안만 합니다. `--apply`를 추가하면 복사본에서 자동 반영용
+패치를 검증해 저장하지만 로컬 원본을 덮어쓰거나 푸시하지 않습니다. 실제 자동 커밋은
+GitHub Actions의 별도 게시 작업에서 수행합니다.
 
 
 ## 사용 타이어와 선수별 한줄 평

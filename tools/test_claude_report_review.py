@@ -71,6 +71,31 @@ class ClaudeReportReviewTests(unittest.TestCase):
         self.assertNotIn("adversarial-review", prompt)
         self.assertTrue((output / "rescue.md").exists())
 
+    def test_automatic_mode_validates_structured_patch_and_records_result(self):
+        responses = [
+            subprocess.CompletedProcess([], 0, '{"result":"발견사항"}'),
+            subprocess.CompletedProcess(
+                [],
+                0,
+                json.dumps(
+                    {"structured_output": {"summary": "수정", "patch": "diff patch"}}
+                ),
+            ),
+        ]
+        with tempfile.TemporaryDirectory() as folder, patch.object(
+            review, "changed_reports", return_value=["reports/index.html"]
+        ), patch.object(review.shutil, "which", return_value="claude"), patch.object(
+            review.subprocess, "run", side_effect=responses
+        ) as run, patch.object(
+            review, "prepare", return_value={"status": "validated"}
+        ) as prepare:
+            status = review.run_reviews(
+                ".", folder, local_login=True, apply=True, compare_ref="base"
+            )
+            self.assertEqual(status["repair"]["status"], "validated")
+            self.assertEqual(prepare.call_args.args[1], "diff patch")
+            self.assertIn("--json-schema", run.call_args_list[1].args[0])
+
     def test_old_reviews_are_removed_when_new_run_is_skipped(self):
         with tempfile.TemporaryDirectory() as folder:
             output = Path(folder)
