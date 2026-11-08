@@ -1,0 +1,78 @@
+import json
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+import claude_report_review as review
+
+
+class ClaudeReportReviewTests(unittest.TestCase):
+    def run_review(self, responses=None, authenticated=True):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        output = Path(folder.name)
+        with patch.dict("os.environ", {}, clear=True), patch.object(
+            review, "changed_reports", return_value=["reports/weekend-1/data/2.json"]
+        ), patch.object(
+            review.shutil, "which", return_value="/bin/claude"
+        ), patch.object(
+            review.subprocess, "run", side_effect=responses
+        ) as run:
+            status = review.run_reviews(".", output, local_login=authenticated)
+        self.assertEqual(json.loads((output / "status.json").read_text()), status)
+        return status, output, run
+
+    def test_missing_auth_does_not_call_claude_or_block_reports(self):
+        status, _, run = self.run_review(authenticated=False)
+        run.assert_not_called()
+        for item in status["reviews"].values():
+            self.assertEqual(
+                item, {"status": "skipped", "reason": "missing_claude_auth"}
+            )
+
+    def test_first_failure_still_runs_second_review_without_saving_diagnostics(self):
+        responses = [
+            subprocess.CompletedProcess([], 1, "sensitive diagnostic", "secret"),
+            subprocess.CompletedProcess([], 0, '{"result":"검토 완료"}'),
+        ]
+        status, output, run = self.run_review(responses)
+        self.assertEqual(run.call_count, 2)
+        self.assertEqual(status["reviews"]["review"]["status"], "failed")
+        self.assertEqual(status["reviews"]["adversarial-review"]["status"], "completed")
+        self.assertEqual((output / "adversarial-review.md").read_text(), "검토 완료\n")
+        self.assertNotIn("sensitive", (output / "status.json").read_text())
+        for call in run.call_args_list:
+            command = call.args[0]
+            self.assertIn("Read,Glob,Grep", command)
+            self.assertNotIn("--dangerously-skip-permissions", command)
+
+    def test_api_error_is_never_recorded_as_success(self):
+        response = subprocess.CompletedProcess(
+            [], 0, '{"is_error":true,"result":"secret error"}'
+        )
+        status, output, _ = self.run_review([response, response])
+        self.assertTrue(
+            all(x["status"] == "failed" for x in status["reviews"].values())
+        )
+        self.assertEqual(list(output.glob("*.md")), [])
+
+    def test_old_reviews_are_removed_when_new_run_is_skipped(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder)
+            for mode in review.MODES:
+                (output / f"{mode}.md").write_text("outdated review")
+            with patch.object(review, "changed_reports", return_value=[]):
+                status = review.run_reviews(".", output)
+            self.assertEqual(list(output.glob("*.md")), [])
+            self.assertTrue(
+                all(
+                    x["reason"] == "no_changed_reports"
+                    for x in status["reviews"].values()
+                )
+            )
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -68,3 +68,10 @@ jobs:
             git commit -m 'Update F1 weekend reports'
             git push
           fi
+  claude-review:
+    needs: report
+    uses: ./.github/workflows/claude-report-review.yml
+    with:
+      artifact_name: f1-weekend-reports
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

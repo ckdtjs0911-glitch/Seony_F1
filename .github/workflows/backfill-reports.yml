@@ -39,3 +39,10 @@ jobs:
             git commit -m 'Fill historical F1 report gaps'
             git push
           fi
+  claude-review:
+    needs: backfill
+    uses: ./.github/workflows/claude-report-review.yml
+    with:
+      artifact_name: historical-f1-reports
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
