@@ -184,7 +184,8 @@ def render_verdicts(name, rows):
         else:
             delta = row["fastest"] - best
             assessment = "관측 최속 기준 선두" if delta == 0 else f"세션 관측 최속보다 {delta:.3f}초 느림"
-            text = f"{assessment} · 최속 {seconds(row['fastest'])}, {row['records']}개 랩 기록으로 비교한 결과입니다."
+            caveat = " 단계(Q1~Q3)·타이어·주행 조건이 다른 기록을 함께 비교한 값이라 공식 순위와 다를 수 있습니다." if name == "Qualifying" else ""
+            text = f"{assessment} · 최속 {seconds(row['fastest'])}, {row['records']}개 랩 기록으로 비교한 결과입니다.{caveat}"
         rank = row["position"] if row["position"] is not None else "—"
         search = esc((row["name"] + " " + row["team"]).lower())
         lines.append(
