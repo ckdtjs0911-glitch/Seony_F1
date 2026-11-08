@@ -82,20 +82,22 @@ python -m venv .venv
 보고서를 함께 갱신합니다. 보고서 문구를 API로 자동 수정하는 기존 첨삭 파이프라인은 사용하지
 않습니다. 과거 editorial-review.json은 이전 실행 기록입니다.
 
-### Claude 일반 검토 + 반대 관점 검토
+### Claude 일반 검토 + rescue 문제 해결안
 
 주말 자동 생성과 과거 자료 수집 워크플로 모두 보고서 저장 성공 후 별도 작업으로
-`.github/workflows/claude-report-review.yml`을 호출합니다. Claude CLI가 두 종류의 검토를
-각각 실행합니다. `/cc:review`, `/cc:adversarial-review` 플러그인 명령 자체를 호출하는
-방식은 아니며, 같은 목적의 일반 검토와 반대 관점 검토를 별도 요청으로 보냅니다.
+`.github/workflows/claude-report-review.yml`을 호출합니다. Claude CLI가 일반 검토 후
+rescue를 순서대로 실행합니다. `/cc:review`, `/cc:rescue` 플러그인 명령 자체를 호출하는
+방식은 아니며, 같은 목적의 일반 검토와 문제 조사·수정안 작성을 별도 요청으로 보냅니다.
+`/cc:adversarial-review`는 실행하지 않습니다.
 
 - 일반 검토: 데이터·수치·설명, 구조·UI 회귀, 한국어 문구.
-- 반대 관점 검토: 누락·삭제/복원 랩, 타이어·퀄리파잉·시간대 등의 경계 조건과 잘못된 전제.
-- 두 검토 모두 읽기 전용입니다. 문구·코드 자동 수정, 커밋, 푸시를 하지 않습니다.
+- rescue: 일반 검토 결과를 전달받아 지적을 검증하고 원인·최소 수정 패치·검증 방법을 제안합니다.
+  일반 검토가 실패해도 원본을 직접 확인하며, 실제 수정·테스트 완료로 표시하지 않습니다.
+- 두 단계 모두 읽기 전용입니다. 문구·코드 자동 수정, 커밋, 푸시를 하지 않습니다.
   파일 읽기·검색 도구만 제공하고 MCP 도구와 사용자 훅을 차단합니다.
 - 결과는 Actions artifact의 `claude-review-f1-weekend-reports` 또는
   `claude-review-historical-f1-reports`에 30일간 저장합니다.
-  `review.md`, `adversarial-review.md`, 실행 상태 `status.json`을 확인할 수 있습니다.
+  `review.md`, `rescue.md`, 실행 상태 `status.json`을 확인할 수 있습니다.
 - 인증이 없으면 `skipped`, CLI·인증·요청 실패 시 `failed`로 기록합니다. 검토 실패 때문에
   이미 생성·저장한 보고서를 취소하지 않습니다. 발견사항은 사람이 검토해 반영합니다.
   실행 중 상태도 저장하며, 강제 종료된 실행의 기록은 `running`으로 남을 수 있습니다.
@@ -103,12 +105,12 @@ python -m venv .venv
 
 GitHub Actions는 로컬 Claude 로그인 상태를 공유하지 않습니다. Claude Code에서
 `claude setup-token`으로 자동화용 토큰을 만든 뒤, **이 저장소**의 Settings → Secrets and
-variables → Actions에 `CLAUDE_CODE_OAUTH_TOKEN` 이름으로 등록해야 실제 검토가 실행됩니다.
+variables → Actions에 `CLAUDE_CODE_OAUTH_TOKEN` 이름으로 등록해야 두 단계가 실행됩니다.
 토큰은 채팅이나 파일에 붙여 넣지 않습니다. 만료·취소 시 새 토큰으로 교체합니다.
 별도 Anthropic API 키는 사용하지 않으며, Claude 계정의 이용 한도와 사용 정책이 적용됩니다.
 
 로컬 로그인으로 직접 검토하려면 Claude CLI가 PATH에 있는 환경에서 실행합니다.
-Git 기준으로 수정·추가된 `reports/` 파일이 없으면 두 검토를 건너뜁니다.
+Git 기준으로 수정·추가·삭제된 `reports/` 파일이 없으면 두 단계를 건너뜁니다.
 
 ```bash
 python tools/claude_report_review.py --local-login --output-dir /tmp/f1-claude-review

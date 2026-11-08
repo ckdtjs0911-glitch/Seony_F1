@@ -40,8 +40,9 @@ class ClaudeReportReviewTests(unittest.TestCase):
         status, output, run = self.run_review(responses)
         self.assertEqual(run.call_count, 2)
         self.assertEqual(status["reviews"]["review"]["status"], "failed")
-        self.assertEqual(status["reviews"]["adversarial-review"]["status"], "completed")
-        self.assertEqual((output / "adversarial-review.md").read_text(), "검토 완료\n")
+        self.assertEqual(status["reviews"]["rescue"]["status"], "completed")
+        self.assertEqual((output / "rescue.md").read_text(), "검토 완료\n")
+        self.assertIn("일반 검토 결과가 없어", run.call_args_list[1].kwargs["input"])
         self.assertNotIn("sensitive", (output / "status.json").read_text())
         for call in run.call_args_list:
             command = call.args[0]
@@ -60,11 +61,22 @@ class ClaudeReportReviewTests(unittest.TestCase):
         )
         self.assertEqual(list(output.glob("*.md")), [])
 
+    def test_rescue_receives_review_findings_and_obsolete_stage_is_not_run(self):
+        response = subprocess.CompletedProcess([], 0, '{"result":"실제 발견사항"}')
+        status, output, run = self.run_review([response, response])
+        self.assertEqual(list(status["reviews"]), ["review", "rescue"])
+        prompt = run.call_args_list[1].kwargs["input"]
+        self.assertIn("실제 발견사항", prompt)
+        self.assertIn("unified diff", prompt)
+        self.assertNotIn("adversarial-review", prompt)
+        self.assertTrue((output / "rescue.md").exists())
+
     def test_old_reviews_are_removed_when_new_run_is_skipped(self):
         with tempfile.TemporaryDirectory() as folder:
             output = Path(folder)
             for mode in review.MODES:
                 (output / f"{mode}.md").write_text("outdated review")
+            (output / "adversarial-review.md").write_text("obsolete stage")
             with patch.object(review, "changed_reports", return_value=[]):
                 status = review.run_reviews(".", output)
             self.assertEqual(list(output.glob("*.md")), [])
