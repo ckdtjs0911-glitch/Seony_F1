@@ -3605,7 +3605,7 @@
     "session": "프랙티스 1",
     "date": "2026-11-06T15:30:00+00:00",
     "attachment_assets": [],
-    "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
+    "status": "수집 완료 (OpenF1 기준)"
   },
   {
     "year": 2026,
@@ -3615,7 +3615,7 @@
     "session": "프랙티스 2",
     "date": "2026-11-06T19:00:00+00:00",
     "attachment_assets": [],
-    "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
+    "status": "수집 완료 (OpenF1 기준)"
   },
   {
     "year": 2026,
@@ -3625,7 +3625,7 @@
     "session": "프랙티스 3",
     "date": "2026-11-07T14:30:00+00:00",
     "attachment_assets": [],
-    "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
+    "status": "수집 완료 (OpenF1 기준)"
   },
   {
     "year": 2026,
@@ -3635,7 +3635,7 @@
     "session": "퀄리파잉",
     "date": "2026-11-07T18:00:00+00:00",
     "attachment_assets": [],
-    "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
+    "status": "수집 완료 (OpenF1 기준)"
   },
   {
     "year": 2026,
@@ -3647,7 +3647,7 @@
     "attachment_assets": [
       "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
     ],
-    "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
+    "status": "수집 완료 (OpenF1 기준)"
   },
   {
     "year": 2026,
