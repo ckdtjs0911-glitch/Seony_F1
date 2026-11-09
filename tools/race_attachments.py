@@ -4,6 +4,8 @@ import json
 from html import escape
 from pathlib import Path
 
+from race_starting_tyres import load_summaries, render_starting_tyres
+
 ATTACHMENTS = Path(__file__).resolve().parents[1] / "reports" / "attachments"
 ALLOWED = {
     ".png": "image/png",
@@ -50,29 +52,40 @@ def compound_card(session, item, heading):
     )
 
 
-def render_race_attachments(snapshot, directory=None):
+def render_race_attachments(snapshot, directory=None, starting_tyre_summaries=None):
     if snapshot["session"]["session_name"] != "Race":
         return ""
     directory = directory or ATTACHMENTS
     manifest = directory / "manifest.json"
-    if not manifest.exists():
-        return ""
     session = snapshot["session"]
     year = session.get("year") or int(session["date_start"][:4])
     items = [
         item
-        for item in json.loads(manifest.read_text(encoding="utf-8"))
+        for item in (
+            json.loads(manifest.read_text(encoding="utf-8"))
+            if manifest.exists()
+            else []
+        )
         if item["year"] == year
     ]
-    if not items:
-        return ""
     cards = []
+    summaries = (
+        starting_tyre_summaries
+        if starting_tyre_summaries is not None
+        else load_summaries(directory.parent)
+    )
+    starting_card = render_starting_tyres(snapshot, summaries)
+    has_starting_card = False
     for item in items:
         name = item["filename"]
         if Path(name).name != name:
             raise ValueError("Attachment filename must not contain a directory")
         path = directory / name
         heading = f'<h4>{escape(item["title"])}</h4><p class="meta">{year}년 · {escape(item.get("source", "참고자료"))}</p>'
+        if item.get("kind") == "starting-tyres":
+            cards.append(starting_card)
+            has_starting_card = True
+            continue
         if item.get("kind") == "compound-selection":
             cards.append(compound_card(session, item, heading))
             continue
@@ -92,8 +105,10 @@ def render_race_attachments(snapshot, directory=None):
             + heading
             + f'<img src="{uri}" alt="{escape(item["title"])}" style="display:block;width:100%;height:auto;margin-top:16px"></article>'
         )
+    if not has_starting_card:
+        cards.append(starting_card)
     return (
-        '<section id="race-tyre-attachments"><h3>그랑프리별 타이어 컴파운드와 스타트 타이어</h3><p class="meta">해당 연도의 사용자 제공 참고자료입니다. 이미지의 수치와 설명은 OpenF1 계산값과 구분합니다.</p><div class="race-reference-images">'
+        '<section id="race-tyre-attachments"><h3>그랑프리별 타이어 컴파운드와 스타트 타이어</h3><p class="meta">대회 컴파운드 조합은 사용자 제공 참고자료이며, 스타트 타이어는 저장된 OpenF1 레이스 기록에서 자동 집계합니다.</p><div class="race-reference-images">'
         + "".join(cards)
         + "</div></section>"
     )

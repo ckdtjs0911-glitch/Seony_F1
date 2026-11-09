@@ -69,5 +69,7 @@ class RaceAttachmentTests(unittest.TestCase):
             self.assertNotIn("<details>", text)
             self.assertIn("&lt;자료&gt;", text)
             race["session"]["year"] = 2025
-            self.assertEqual(render_race_attachments(race, root), "")
+            older_year = render_race_attachments(race, root)
+            self.assertNotIn("<img", older_year)
+            self.assertIn('data-starting-tyres="openf1"', older_year)
             self.assertEqual(render_race_attachments(snapshot("Practice 1"), root), "")

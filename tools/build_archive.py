@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import weekend_report as report
+from race_starting_tyres import summaries_for
 from retention import first_year, prune
 
 COUNTRIES = {
@@ -51,6 +52,7 @@ def build(root, since=None):
             snapshots[value["session"]["session_key"]] = value
     known = {s["session_key"]: s for s in sessions}
     known.update({key: s["session"] for key, s in snapshots.items()})
+    starting_tyre_summaries = summaries_for(snapshots.values(), known.values())
     now = datetime.now(timezone.utc)
     entries = []
     attachment_assets = {}
@@ -80,7 +82,9 @@ def build(root, since=None):
             snapshot = snapshots.get(session["session_key"])
             if snapshot:
                 path = Path(folder) / "report.html"
-                report.render([snapshot], path)
+                report.render(
+                    [snapshot], path, starting_tyre_summaries=starting_tyre_summaries
+                )
                 page = path.read_text(encoding="utf-8")
                 page = page.replace(
                     "<body>",

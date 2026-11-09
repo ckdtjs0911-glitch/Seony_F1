@@ -2566,9 +2566,7 @@
     "gp": "호주 그랑프리 · Melbourne",
     "session": "레이스",
     "date": "2026-03-08T04:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -2618,9 +2616,7 @@
     "gp": "중국 그랑프리 · Shanghai",
     "session": "레이스",
     "date": "2026-03-15T07:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -2670,9 +2666,7 @@
     "gp": "일본 그랑프리 · Suzuka",
     "session": "레이스",
     "date": "2026-03-29T05:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -2812,9 +2806,7 @@
     "gp": "미국 그랑프리 · Miami",
     "session": "레이스",
     "date": "2026-05-03T17:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -2864,9 +2856,7 @@
     "gp": "캐나다 그랑프리 · Montreal",
     "session": "레이스",
     "date": "2026-05-24T20:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -2916,9 +2906,7 @@
     "gp": "모나코 그랑프리 · Monte Carlo",
     "session": "레이스",
     "date": "2026-06-07T13:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -2968,9 +2956,7 @@
     "gp": "스페인 그랑프리 · Catalunya",
     "session": "레이스",
     "date": "2026-06-14T13:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -3020,9 +3006,7 @@
     "gp": "오스트리아 그랑프리 · Spielberg",
     "session": "레이스",
     "date": "2026-06-28T13:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -3072,9 +3056,7 @@
     "gp": "영국 그랑프리 · Silverstone",
     "session": "레이스",
     "date": "2026-07-05T14:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -3124,9 +3106,7 @@
     "gp": "벨기에 그랑프리 · Spa-Francorchamps",
     "session": "레이스",
     "date": "2026-07-19T13:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -3176,9 +3156,7 @@
     "gp": "헝가리 그랑프리 · Hungaroring",
     "session": "레이스",
     "date": "2026-07-26T13:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -3228,9 +3206,7 @@
     "gp": "네덜란드 그랑프리 · Zandvoort",
     "session": "레이스",
     "date": "2026-08-23T13:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -3280,9 +3256,7 @@
     "gp": "이탈리아 그랑프리 · Monza",
     "session": "레이스",
     "date": "2026-09-06T13:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -3332,9 +3306,7 @@
     "gp": "스페인 그랑프리 · Madring",
     "session": "레이스",
     "date": "2026-09-13T13:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -3384,9 +3356,7 @@
     "gp": "아제르바이잔 그랑프리 · Baku",
     "session": "레이스",
     "date": "2026-09-26T11:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -3436,9 +3406,7 @@
     "gp": "바레인 그랑프리 · Kuala Lumpur",
     "session": "레이스",
     "date": "2026-10-04T07:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -3488,9 +3456,7 @@
     "gp": "싱가포르 그랑프리 · Singapore",
     "session": "레이스",
     "date": "2026-10-11T12:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -3540,9 +3506,7 @@
     "gp": "미국 그랑프리 · Austin",
     "session": "레이스",
     "date": "2026-10-25T20:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -3592,9 +3556,7 @@
     "gp": "멕시코 그랑프리 · Mexico City",
     "session": "레이스",
     "date": "2026-11-01T20:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
   },
   {
@@ -3644,9 +3606,7 @@
     "gp": "브라질 그랑프리 · Interlagos",
     "session": "레이스",
     "date": "2026-11-08T17:00:00+00:00",
-    "attachment_assets": [
-      "__F1_ATTACHMENT_09bf5ede6073039584fc8340e31169f0f71dbba5b100f50e048c18b4a5424d3c__"
-    ],
+    "attachment_assets": [],
     "status": "수집 완료 (OpenF1 기준)"
   },
   {

@@ -132,6 +132,7 @@
     "year": 2026,
     "title": "그랑프리별 스타트 타이어",
     "filename": "2026-starting-tyres.png",
-    "source": "사용자 제공 참고자료"
+    "source": "OpenF1 레이스 기록 자동 집계",
+    "kind": "starting-tyres"
   }
 ]

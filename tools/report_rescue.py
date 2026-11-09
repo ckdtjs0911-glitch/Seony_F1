@@ -20,6 +20,7 @@ SOURCE_FILES = {
     "tools/race_events.py",
     "tools/race_attachments.py",
     "tools/race_pitstops.py",
+    "tools/race_starting_tyres.py",
 }
 
 
@@ -42,6 +43,7 @@ def allowed_output(path):
         in {
             "reports/index.html",
             "reports/current-year.html",
+            "reports/catalog/archive-index.json",
         }
         or bool(re.fullmatch(r"reports/weekend-\d+/weekend-report\.html", path))
     )
