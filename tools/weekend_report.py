@@ -69,7 +69,8 @@ def save_json(path, value):
 def seconds(value):
     if not isinstance(value, (float, int)) or isinstance(value, bool):
         return "—"
-    return f"{int(value // 60)}:{value % 60:06.3f}"
+    minutes, millis = divmod(round(value * 1000), 60000)
+    return f"{minutes}:{millis / 1000:06.3f}"
 
 
 def esc(value):
