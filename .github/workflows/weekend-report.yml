@@ -2,8 +2,8 @@ name: F1 weekend reports
 
 on:
   schedule:
-    # Every six hours, offset from the busiest minute. UTC.
-    - cron: '17 */6 * * *'
+    # Detect completed sessions; generate only when collection is due. UTC.
+    - cron: '7,22,37,52 * * * *'
   workflow_dispatch:
     inputs:
       meeting:
@@ -18,6 +18,7 @@ jobs:
   report:
     outputs:
       source_sha: ${{ steps.report_commit.outputs.sha }}
+      generated: ${{ steps.session_gate.outputs.run }}
     concurrency:
       group: weekend-report
       cancel-in-progress: false
@@ -29,11 +30,30 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install requests==2.32.4
+      - name: Check for a completed session needing a report
+        id: session_gate
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          MEETING: ${{ inputs.meeting }}
+          OPENF1_CLIENT_ID: ${{ secrets.OPENF1_CLIENT_ID }}
+          OPENF1_CLIENT_SECRET: ${{ secrets.OPENF1_CLIENT_SECRET }}
+        run: |
+          args=()
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+            args+=(--manual)
+            if [ -n "$MEETING" ]; then
+              [[ "$MEETING" =~ ^[0-9]+$ ]] || exit 1
+              args+=(--meeting "$MEETING")
+            fi
+          fi
+          python tools/session_report_schedule.py "${args[@]}"
       - name: Verify report generation and failure handling
+        if: steps.session_gate.outputs.run == 'true'
         run: python -m unittest discover -s tools -p 'test_*.py'
       - name: Collect five sessions and build report
+        if: steps.session_gate.outputs.run == 'true'
         env:
-          MEETING: ${{ inputs.meeting }}
+          MEETING: ${{ steps.session_gate.outputs.meeting }}
           OPENF1_CLIENT_ID: ${{ secrets.OPENF1_CLIENT_ID }}
           OPENF1_CLIENT_SECRET: ${{ secrets.OPENF1_CLIENT_SECRET }}
         run: |
@@ -47,9 +67,10 @@ jobs:
           fi
           python tools/weekend_report.py --output-root reports "${args[@]}"
       - name: Update cumulative year, Grand Prix and session archive
+        if: steps.session_gate.outputs.run == 'true'
         run: python tools/build_archive.py
       - name: Retain reports and snapshots for download
-        if: always()
+        if: always() && steps.session_gate.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: f1-weekend-reports
@@ -57,6 +78,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
       - name: Commit successfully generated reports
+        if: steps.session_gate.outputs.run == 'true'
         id: report_commit
         run: |
           git config user.name 'github-actions[bot]'
@@ -69,6 +91,7 @@ jobs:
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
   claude-review:
     needs: report
+    if: needs.report.outputs.generated == 'true'
     uses: ./.github/workflows/claude-report-review.yml
     with:
       artifact_name: f1-weekend-reports
