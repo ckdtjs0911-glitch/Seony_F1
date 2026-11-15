@@ -9,6 +9,8 @@ class RaceEventTests(unittest.TestCase):
     def test_flag_and_safety_labels(self):
         for record, label in [
             ({"flag": "RED"}, "레드 플래그"),
+            ({"flag": "CHEQUERED", "message": "CHEQUERED FLAG"}, "체커드 플래그"),
+            ({"message": "RED FLAG"}, "레드 플래그"),
             ({"flag": "DOUBLE_YELLOW"}, "더블 옐로 플래그"),
             ({"flag": "YELLOW"}, "옐로 플래그"),
             ({"message": "SAFETY CAR DEPLOYED"}, "세이프티카 투입"),

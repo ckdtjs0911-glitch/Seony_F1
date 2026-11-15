@@ -95,14 +95,26 @@ def anchor(name):
     return name.replace(" ", "-")
 
 
-def deleted_laps(messages):
+def deleted_laps(messages, laps):
     deleted = set()
     for message in messages:
         match = re.search(
-            r"CAR (\d+).*TIME .*DELETED.*LAP (\d+)", message.get("message") or ""
+            r"CAR (\d+).*TIME (\d+):(\d+\.\d+).*DELETED.*LAP (\d+)", message.get("message") or ""
         )
         if match:
-            deleted.add(tuple(map(int, match.groups())))
+            driver, minutes, seconds, lap_number = match.groups()
+            driver, lap_number = int(driver), int(lap_number)
+            duration = int(minutes) * 60 + float(seconds)
+            candidates = {
+                lap["lap_number"]
+                for lap in laps
+                if lap.get("driver_number") == driver
+                and lap.get("lap_number") in (lap_number, lap_number - 1)
+                and isinstance(lap.get("lap_duration"), (int, float))
+                and abs(lap["lap_duration"] - duration) < 0.0011
+            }
+            if len(candidates) == 1:
+                deleted.add((driver, candidates.pop()))
     return deleted
 
 
@@ -259,7 +271,7 @@ def summarize(snapshot):
     results = {x["driver_number"]: x for x in data.get("session_result", [])}
     all_laps = data.get("laps", [])
     numbers = set(drivers) | set(results) | {x["driver_number"] for x in all_laps}
-    deleted = deleted_laps(data.get("race_control", []))
+    deleted = deleted_laps(data.get("race_control", []), data.get("laps", []))
     starts = [stamp(x["date_start"]) for x in all_laps if x.get("date_start")]
     start = min(starts) if starts else None
     ends = [

@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta, timezone
 from html import escape
+import re
 
 
 def parse_time(value):
@@ -14,7 +15,7 @@ def parse_time(value):
 def event_label(record):
     message = (record.get("message") or "").upper()
     flag = (record.get("flag") or "").upper().replace("_", " ")
-    if flag == "RED" or "RED FLAG" in message:
+    if flag == "RED" or re.search(r"\bRED FLAG\b", message):
         return "레드 플래그"
     if "VIRTUAL SAFETY CAR" in message or message.startswith("VSC "):
         return "VSC 종료 예고" if "ENDING" in message else "VSC"

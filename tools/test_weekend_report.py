@@ -162,6 +162,20 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(rows[1]["status"], "DNS")
         self.assertIsNone(rows[1]["fastest"])
 
+    def test_deleted_time_matches_previous_lap_without_deleting_next_lap(self):
+        item = snapshot("Practice 1")
+        item["data"]["race_control"][0]["message"] = (
+            "CAR 1 (TST) TIME 1:20.000 DELETED - TRACK LIMITS LAP 3"
+        )
+        row = report.summarize(item)[0]
+        self.assertEqual(row["fastest"], 82.0)
+        self.assertTrue(row["laps"][0]["deleted"])
+        self.assertFalse(row["laps"][1]["deleted"])
+        item["data"]["race_control"][0]["message"] = (
+            "CAR 1 (TST) TIME 1:19.000 DELETED - TRACK LIMITS LAP 3"
+        )
+        self.assertEqual(report.summarize(item)[0]["fastest"], 80.0)
+
     def test_qualifying_uses_official_phase_array(self):
         row = report.summarize(snapshot())[0]
         self.assertEqual(row["q"], [82.1, 81.2, 80.3])
