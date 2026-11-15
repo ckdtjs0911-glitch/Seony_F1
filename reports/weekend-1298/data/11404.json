@@ -17,7 +17,7 @@
     "is_cancelled": false
   },
   "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집",
-  "fetched_at": "2026-11-08T22:28:06.188965+00:00",
+  "fetched_at": "2026-11-15T23:10:10.474935+00:00",
   "data": {
     "drivers": [
       {
@@ -3459,40 +3459,40 @@
         "driver_number": 16,
         "lap_number": 4,
         "date_start": "2026-11-01T20:07:33.217000+00:00",
-        "duration_sector_1": 28.166,
-        "duration_sector_2": 31.866,
-        "duration_sector_3": 20.751,
-        "i1_speed": 298,
-        "i2_speed": 294,
+        "duration_sector_1": 28.158,
+        "duration_sector_2": 31.864,
+        "duration_sector_3": 20.812,
+        "i1_speed": 299,
+        "i2_speed": 292,
         "is_pit_out_lap": false,
-        "lap_duration": 80.783,
+        "lap_duration": 80.834,
         "segments_sector_1": [
           2048,
           2048,
           2049,
-          2048,
-          2048,
-          2048,
           2049,
+          2051,
+          2048,
+          2048,
           2048
         ],
         "segments_sector_2": [
           2048,
           2048,
           2048,
+          2051,
           2048,
-          2051,
-          2051,
+          2048,
           2048,
           2049
         ],
         "segments_sector_3": [
           2049,
-          2049,
-          2049,
-          2048,
-          2048,
-          2049
+          null,
+          null,
+          null,
+          null,
+          null
         ],
         "st_speed": null
       },
@@ -3502,42 +3502,42 @@
         "driver_number": 3,
         "lap_number": 4,
         "date_start": "2026-11-01T20:07:34.338000+00:00",
-        "duration_sector_1": 28.034,
-        "duration_sector_2": 32.42,
-        "duration_sector_3": 20.81,
-        "i1_speed": 292,
-        "i2_speed": 301,
+        "duration_sector_1": 28.017,
+        "duration_sector_2": 32.198,
+        "duration_sector_3": 20.79,
+        "i1_speed": 296,
+        "i2_speed": 302,
         "is_pit_out_lap": false,
-        "lap_duration": 81.264,
+        "lap_duration": 81.005,
         "segments_sector_1": [
           2048,
           2048,
           2048,
-          2048,
-          2048,
+          2049,
+          2049,
           2048,
           2048,
           2048
         ],
         "segments_sector_2": [
+          2049,
+          2048,
+          2049,
+          2049,
           2048,
           2048,
-          2048,
-          2048,
-          2048,
-          2048,
-          2048,
+          2049,
           2048
         ],
         "segments_sector_3": [
-          2051,
-          2048,
-          2048,
-          2048,
-          2048,
-          2048
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
         ],
-        "st_speed": 343
+        "st_speed": 344
       },
       {
         "meeting_key": 1298,
@@ -3545,42 +3545,42 @@
         "driver_number": 44,
         "lap_number": 4,
         "date_start": "2026-11-01T20:07:35.148000+00:00",
-        "duration_sector_1": 28.001,
-        "duration_sector_2": 32.666,
-        "duration_sector_3": 20.797,
-        "i1_speed": 292,
-        "i2_speed": 300,
+        "duration_sector_1": 27.844,
+        "duration_sector_2": 32.468,
+        "duration_sector_3": 20.821,
+        "i1_speed": 296,
+        "i2_speed": 302,
         "is_pit_out_lap": false,
-        "lap_duration": 81.464,
+        "lap_duration": 81.133,
         "segments_sector_1": [
           null,
           2048,
           2048,
+          2051,
           2048,
-          2049,
           2048,
           2048,
           2048
         ],
         "segments_sector_2": [
           2048,
+          2049,
           2048,
           2048,
           2048,
           2049,
           2048,
-          2048,
-          2048
+          2049
         ],
         "segments_sector_3": [
-          2048,
-          2048,
-          2049,
-          2048,
-          2048,
-          2048
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
         ],
-        "st_speed": 335
+        "st_speed": 352
       },
       {
         "meeting_key": 1298,
@@ -3588,13 +3588,13 @@
         "driver_number": 12,
         "lap_number": 4,
         "date_start": "2026-11-01T20:07:36.233000+00:00",
-        "duration_sector_1": 28.191,
-        "duration_sector_2": 32.475,
-        "duration_sector_3": 20.994,
-        "i1_speed": 285,
+        "duration_sector_1": 28.093,
+        "duration_sector_2": 32.485,
+        "duration_sector_3": 20.936,
+        "i1_speed": 281,
         "i2_speed": 301,
         "is_pit_out_lap": false,
-        "lap_duration": 81.66,
+        "lap_duration": 81.514,
         "segments_sector_1": [
           2048,
           2048,
@@ -3607,23 +3607,23 @@
         ],
         "segments_sector_2": [
           2048,
-          2048,
-          2048,
-          2048,
-          2048,
-          2048,
-          2048,
-          2049
-        ],
-        "segments_sector_3": [
-          2048,
+          2049,
+          2049,
+          2049,
           2049,
           2048,
           2048,
-          2048,
-          2048
+          null
         ],
-        "st_speed": 333
+        "segments_sector_3": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "st_speed": 343
       },
       {
         "meeting_key": 1298,
@@ -3631,40 +3631,40 @@
         "driver_number": 63,
         "lap_number": 4,
         "date_start": "2026-11-01T20:07:37.701000+00:00",
-        "duration_sector_1": 28.286,
-        "duration_sector_2": 32.454,
-        "duration_sector_3": 21.107,
-        "i1_speed": 291,
+        "duration_sector_1": 28.134,
+        "duration_sector_2": 32.372,
+        "duration_sector_3": 21.038,
+        "i1_speed": 283,
         "i2_speed": 303,
         "is_pit_out_lap": false,
-        "lap_duration": 81.847,
+        "lap_duration": 81.544,
         "segments_sector_1": [
           null,
           2048,
           2048,
           2048,
           2048,
-          2048,
-          2048,
+          2049,
+          2049,
           2049
         ],
         "segments_sector_2": [
           2049,
           2048,
-          2048,
-          2048,
-          2048,
+          2049,
+          2049,
           2049,
           2048,
-          2049
+          2048,
+          null
         ],
         "segments_sector_3": [
-          2049,
-          2048,
-          2048,
-          2048,
-          2048,
-          2048
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
         ],
         "st_speed": 342
       },
@@ -3674,42 +3674,42 @@
         "driver_number": 41,
         "lap_number": 4,
         "date_start": "2026-11-01T20:07:39.015000+00:00",
-        "duration_sector_1": 28.279,
-        "duration_sector_2": 32.81,
-        "duration_sector_3": 21.154,
-        "i1_speed": 289,
+        "duration_sector_1": 28.273,
+        "duration_sector_2": 32.687,
+        "duration_sector_3": 21.159,
+        "i1_speed": 283,
         "i2_speed": 301,
         "is_pit_out_lap": false,
-        "lap_duration": 82.243,
+        "lap_duration": 82.119,
         "segments_sector_1": [
           2048,
           2048,
           2048,
           2049,
           2049,
-          2048,
-          2048,
+          2049,
+          2049,
           2048
         ],
         "segments_sector_2": [
           2048,
-          2048,
+          2049,
+          2049,
           2048,
           2049,
           2049,
           2048,
-          2048,
-          2049
+          null
         ],
         "segments_sector_3": [
-          2048,
-          2049,
-          2048,
-          2048,
-          2048,
-          2048
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
         ],
-        "st_speed": 341
+        "st_speed": 339
       },
       {
         "meeting_key": 1298,
@@ -3717,42 +3717,42 @@
         "driver_number": 43,
         "lap_number": 4,
         "date_start": "2026-11-01T20:07:39.992000+00:00",
-        "duration_sector_1": 29.0,
-        "duration_sector_2": 33.103,
-        "duration_sector_3": 21.17,
-        "i1_speed": 283,
-        "i2_speed": 303,
+        "duration_sector_1": 28.031,
+        "duration_sector_2": 33.017,
+        "duration_sector_3": 21.294,
+        "i1_speed": 289,
+        "i2_speed": 304,
         "is_pit_out_lap": false,
-        "lap_duration": 83.273,
+        "lap_duration": 82.342,
         "segments_sector_1": [
           2048,
           2048,
           2048,
+          2049,
           2048,
-          2048,
-          2048,
-          2048,
-          2048
+          2049,
+          2049,
+          2049
         ],
         "segments_sector_2": [
-          2048,
+          2049,
           2048,
           2048,
           2048,
           2048,
           2049,
-          2048,
-          2048
+          null,
+          null
         ],
         "segments_sector_3": [
-          2048,
-          2048,
-          2049,
-          2048,
-          2048,
-          2048
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
         ],
-        "st_speed": 332
+        "st_speed": 354
       },
       {
         "meeting_key": 1298,
@@ -3760,42 +3760,42 @@
         "driver_number": 1,
         "lap_number": 4,
         "date_start": "2026-11-01T20:07:40.379000+00:00",
-        "duration_sector_1": 28.07,
-        "duration_sector_2": 32.744,
-        "duration_sector_3": 20.873,
-        "i1_speed": 293,
-        "i2_speed": 303,
+        "duration_sector_1": 28.092,
+        "duration_sector_2": 33.072,
+        "duration_sector_3": 21.109,
+        "i1_speed": 279,
+        "i2_speed": 304,
         "is_pit_out_lap": false,
-        "lap_duration": 81.687,
+        "lap_duration": 82.273,
         "segments_sector_1": [
           2049,
           2049,
+          2049,
           2048,
           2048,
-          2048,
-          2048,
+          2049,
           2048,
           2048
         ],
         "segments_sector_2": [
           2049,
+          2048,
           2049,
           2049,
           2048,
-          2049,
           2048,
-          2049,
-          2048
+          null,
+          null
         ],
         "segments_sector_3": [
-          2049,
-          2049,
-          2048,
-          2048,
-          2048,
-          0
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
         ],
-        "st_speed": 342
+        "st_speed": 355
       },
       {
         "meeting_key": 1298,
@@ -3803,42 +3803,42 @@
         "driver_number": 81,
         "lap_number": 4,
         "date_start": "2026-11-01T20:07:41.405000+00:00",
-        "duration_sector_1": 28.117,
-        "duration_sector_2": 33.171,
-        "duration_sector_3": 21.619,
-        "i1_speed": 284,
-        "i2_speed": 304,
+        "duration_sector_1": 28.156,
+        "duration_sector_2": 32.835,
+        "duration_sector_3": 21.241,
+        "i1_speed": 298,
+        "i2_speed": 303,
         "is_pit_out_lap": false,
-        "lap_duration": 82.907,
+        "lap_duration": 82.232,
         "segments_sector_1": [
           null,
           2048,
+          2048,
           2049,
           2048,
           2048,
           2048,
-          2048,
-          2048
+          2049
         ],
         "segments_sector_2": [
-          2048,
-          2048,
+          2049,
+          2049,
           2048,
           2048,
           2048,
           2049,
-          2048,
-          2048
+          null,
+          null
         ],
         "segments_sector_3": [
-          2048,
-          2048,
-          2048,
-          2048,
-          2048,
-          2048
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
         ],
-        "st_speed": 349
+        "st_speed": null
       },
       {
         "meeting_key": 1298,
@@ -4361,6 +4361,393 @@
           2049
         ],
         "st_speed": 316
+      },
+      {
+        "meeting_key": 1298,
+        "session_key": 11404,
+        "driver_number": 16,
+        "lap_number": 5,
+        "date_start": "2026-11-01T20:08:54.095000+00:00",
+        "duration_sector_1": 28.166,
+        "duration_sector_2": 31.866,
+        "duration_sector_3": 20.751,
+        "i1_speed": 298,
+        "i2_speed": 294,
+        "is_pit_out_lap": false,
+        "lap_duration": 80.783,
+        "segments_sector_1": [
+          null,
+          null,
+          null,
+          2048,
+          2048,
+          2048,
+          2049,
+          2048
+        ],
+        "segments_sector_2": [
+          2048,
+          2048,
+          2048,
+          2048,
+          2051,
+          2051,
+          2048,
+          2049
+        ],
+        "segments_sector_3": [
+          2049,
+          2049,
+          2049,
+          2048,
+          2048,
+          2049
+        ],
+        "st_speed": null
+      },
+      {
+        "meeting_key": 1298,
+        "session_key": 11404,
+        "driver_number": 3,
+        "lap_number": 5,
+        "date_start": "2026-11-01T20:08:55.275000+00:00",
+        "duration_sector_1": 28.034,
+        "duration_sector_2": 32.42,
+        "duration_sector_3": 20.81,
+        "i1_speed": 292,
+        "i2_speed": 301,
+        "is_pit_out_lap": false,
+        "lap_duration": 81.264,
+        "segments_sector_1": [
+          null,
+          null,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048
+        ],
+        "segments_sector_2": [
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048
+        ],
+        "segments_sector_3": [
+          2051,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048
+        ],
+        "st_speed": 343
+      },
+      {
+        "meeting_key": 1298,
+        "session_key": 11404,
+        "driver_number": 44,
+        "lap_number": 5,
+        "date_start": "2026-11-01T20:08:56.250000+00:00",
+        "duration_sector_1": 28.001,
+        "duration_sector_2": 32.666,
+        "duration_sector_3": 20.797,
+        "i1_speed": 292,
+        "i2_speed": 300,
+        "is_pit_out_lap": false,
+        "lap_duration": 81.464,
+        "segments_sector_1": [
+          null,
+          null,
+          2048,
+          2048,
+          2049,
+          2048,
+          2048,
+          2048
+        ],
+        "segments_sector_2": [
+          2048,
+          2048,
+          2048,
+          2048,
+          2049,
+          2048,
+          2048,
+          2048
+        ],
+        "segments_sector_3": [
+          2048,
+          2048,
+          2049,
+          2048,
+          2048,
+          2048
+        ],
+        "st_speed": 335
+      },
+      {
+        "meeting_key": 1298,
+        "session_key": 11404,
+        "driver_number": 12,
+        "lap_number": 5,
+        "date_start": "2026-11-01T20:08:57.767000+00:00",
+        "duration_sector_1": 28.191,
+        "duration_sector_2": 32.475,
+        "duration_sector_3": 20.994,
+        "i1_speed": 285,
+        "i2_speed": 301,
+        "is_pit_out_lap": false,
+        "lap_duration": 81.66,
+        "segments_sector_1": [
+          null,
+          null,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048
+        ],
+        "segments_sector_2": [
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2049
+        ],
+        "segments_sector_3": [
+          2048,
+          2049,
+          2048,
+          2048,
+          2048,
+          2048
+        ],
+        "st_speed": 333
+      },
+      {
+        "meeting_key": 1298,
+        "session_key": 11404,
+        "driver_number": 63,
+        "lap_number": 5,
+        "date_start": "2026-11-01T20:08:59.268000+00:00",
+        "duration_sector_1": 28.286,
+        "duration_sector_2": 32.454,
+        "duration_sector_3": 21.107,
+        "i1_speed": 291,
+        "i2_speed": 303,
+        "is_pit_out_lap": false,
+        "lap_duration": 81.847,
+        "segments_sector_1": [
+          null,
+          null,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2049
+        ],
+        "segments_sector_2": [
+          2049,
+          2048,
+          2048,
+          2048,
+          2048,
+          2049,
+          2048,
+          2049
+        ],
+        "segments_sector_3": [
+          2049,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048
+        ],
+        "st_speed": null
+      },
+      {
+        "meeting_key": 1298,
+        "session_key": 11404,
+        "driver_number": 41,
+        "lap_number": 5,
+        "date_start": "2026-11-01T20:09:01.167000+00:00",
+        "duration_sector_1": 28.279,
+        "duration_sector_2": 32.81,
+        "duration_sector_3": 21.154,
+        "i1_speed": 289,
+        "i2_speed": 301,
+        "is_pit_out_lap": false,
+        "lap_duration": 82.243,
+        "segments_sector_1": [
+          null,
+          2048,
+          2048,
+          2049,
+          2049,
+          2048,
+          2048,
+          2048
+        ],
+        "segments_sector_2": [
+          2048,
+          2048,
+          2048,
+          2049,
+          2049,
+          2048,
+          2048,
+          2049
+        ],
+        "segments_sector_3": [
+          2048,
+          2049,
+          2048,
+          2048,
+          2048,
+          2048
+        ],
+        "st_speed": 341
+      },
+      {
+        "meeting_key": 1298,
+        "session_key": 11404,
+        "driver_number": 43,
+        "lap_number": 5,
+        "date_start": "2026-11-01T20:09:02.352000+00:00",
+        "duration_sector_1": 29.0,
+        "duration_sector_2": 33.103,
+        "duration_sector_3": 21.17,
+        "i1_speed": 283,
+        "i2_speed": 303,
+        "is_pit_out_lap": false,
+        "lap_duration": 83.273,
+        "segments_sector_1": [
+          null,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048
+        ],
+        "segments_sector_2": [
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2049,
+          2048,
+          2048
+        ],
+        "segments_sector_3": [
+          2048,
+          2048,
+          2049,
+          2048,
+          2048,
+          2048
+        ],
+        "st_speed": 332
+      },
+      {
+        "meeting_key": 1298,
+        "session_key": 11404,
+        "driver_number": 1,
+        "lap_number": 5,
+        "date_start": "2026-11-01T20:09:02.478000+00:00",
+        "duration_sector_1": 28.07,
+        "duration_sector_2": 32.744,
+        "duration_sector_3": 20.873,
+        "i1_speed": 293,
+        "i2_speed": 303,
+        "is_pit_out_lap": false,
+        "lap_duration": 81.687,
+        "segments_sector_1": [
+          null,
+          2049,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048
+        ],
+        "segments_sector_2": [
+          2049,
+          2049,
+          2049,
+          2048,
+          2049,
+          2048,
+          2049,
+          2048
+        ],
+        "segments_sector_3": [
+          2049,
+          2049,
+          2048,
+          2048,
+          2048,
+          0
+        ],
+        "st_speed": 342
+      },
+      {
+        "meeting_key": 1298,
+        "session_key": 11404,
+        "driver_number": 81,
+        "lap_number": 5,
+        "date_start": "2026-11-01T20:09:03.709000+00:00",
+        "duration_sector_1": 28.117,
+        "duration_sector_2": 33.171,
+        "duration_sector_3": 21.619,
+        "i1_speed": 284,
+        "i2_speed": 304,
+        "is_pit_out_lap": false,
+        "lap_duration": 82.907,
+        "segments_sector_1": [
+          null,
+          2048,
+          2049,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048
+        ],
+        "segments_sector_2": [
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2049,
+          2048,
+          2048
+        ],
+        "segments_sector_3": [
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048
+        ],
+        "st_speed": 349
       },
       {
         "meeting_key": 1298,
@@ -23714,7 +24101,7 @@
         "lap_number": 27,
         "date_start": "2026-11-01T20:40:32.172000+00:00",
         "duration_sector_1": 28.005,
-        "duration_sector_2": 33.0,
+        "duration_sector_2": 33,
         "duration_sector_3": 21.267,
         "i1_speed": 303,
         "i2_speed": 303,
@@ -29298,7 +29685,7 @@
         "lap_number": 33,
         "date_start": "2026-11-01T20:49:41.857000+00:00",
         "duration_sector_1": 28.35,
-        "duration_sector_2": 33.0,
+        "duration_sector_2": 33,
         "duration_sector_3": 21.137,
         "i1_speed": 299,
         "i2_speed": 299,
@@ -31625,7 +32012,7 @@
         "i1_speed": 300,
         "i2_speed": 303,
         "is_pit_out_lap": false,
-        "lap_duration": 81.0,
+        "lap_duration": 81,
         "segments_sector_1": [
           null,
           2048,
@@ -38010,7 +38397,7 @@
         "i1_speed": 249,
         "i2_speed": 188,
         "is_pit_out_lap": false,
-        "lap_duration": 111.0,
+        "lap_duration": 111,
         "segments_sector_1": [
           null,
           2048,
@@ -46408,7 +46795,7 @@
         "i1_speed": 303,
         "i2_speed": 306,
         "is_pit_out_lap": false,
-        "lap_duration": 80.0,
+        "lap_duration": 80,
         "segments_sector_1": [
           null,
           2048,
@@ -59824,556 +60211,6 @@
         "stop_duration": null
       },
       {
-        "date": "2026-11-01T20:08:12.601000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 23.9,
-        "lap_number": 3,
-        "driver_number": 14,
-        "pit_duration": 23.9,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:08:18.149000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 27.1,
-        "lap_number": 3,
-        "driver_number": 18,
-        "pit_duration": 27.1,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:14:14.119000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 23.9,
-        "lap_number": 7,
-        "driver_number": 6,
-        "pit_duration": 23.9,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:20:04.023000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 22.8,
-        "lap_number": 11,
-        "driver_number": 30,
-        "pit_duration": 22.8,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:28:11.357000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 22.9,
-        "lap_number": 17,
-        "driver_number": 10,
-        "pit_duration": 22.9,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:29:42.763000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 22.0,
-        "lap_number": 18,
-        "driver_number": 23,
-        "pit_duration": 22.0,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:40:15.593000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 22.6,
-        "lap_number": 26,
-        "driver_number": 81,
-        "pit_duration": 22.6,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:41:17.628000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 22.4,
-        "lap_number": 27,
-        "driver_number": 3,
-        "pit_duration": 22.4,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:41:19.237000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 28.7,
-        "lap_number": 27,
-        "driver_number": 16,
-        "pit_duration": 28.7,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:42:42.784000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 22.7,
-        "lap_number": 28,
-        "driver_number": 44,
-        "pit_duration": 22.7,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:46:33.057000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 28.9,
-        "lap_number": 30,
-        "driver_number": 11,
-        "pit_duration": 28.9,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:46:56.060000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 26.7,
-        "lap_number": 30,
-        "driver_number": 77,
-        "pit_duration": 26.7,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:47:27.400000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 21.9,
-        "lap_number": 31,
-        "driver_number": 27,
-        "pit_duration": 21.9,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:49:48.360000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 33.9,
-        "lap_number": 33,
-        "driver_number": 63,
-        "pit_duration": 33.9,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:51:31.260000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 23.3,
-        "lap_number": 34,
-        "driver_number": 43,
-        "pit_duration": 23.3,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:52:46.053000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 22.8,
-        "lap_number": 35,
-        "driver_number": 41,
-        "pit_duration": 22.8,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:53:28.391000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 22.8,
-        "lap_number": 35,
-        "driver_number": 50,
-        "pit_duration": 22.8,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:54:47.582000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 22.5,
-        "lap_number": 36,
-        "driver_number": 55,
-        "pit_duration": 22.5,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:57:13.791000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 22.5,
-        "lap_number": 38,
-        "driver_number": 5,
-        "pit_duration": 22.5,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:57:50.438000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 24.7,
-        "lap_number": 39,
-        "driver_number": 1,
-        "pit_duration": 24.7,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T20:59:53.747000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 22.5,
-        "lap_number": 40,
-        "driver_number": 87,
-        "pit_duration": 22.5,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:01:25.184000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 22.6,
-        "lap_number": 41,
-        "driver_number": 6,
-        "pit_duration": 22.6,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:01:52.270000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 25.4,
-        "lap_number": 41,
-        "driver_number": 23,
-        "pit_duration": 25.4,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:02:57.347000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 22.5,
-        "lap_number": 42,
-        "driver_number": 30,
-        "pit_duration": 22.5,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:03:07.064000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 23.7,
-        "lap_number": 43,
-        "driver_number": 12,
-        "pit_duration": 23.7,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:04:44.336000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 23.8,
-        "lap_number": 44,
-        "driver_number": 44,
-        "pit_duration": 23.8,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:04:53.636000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 23.8,
-        "lap_number": 43,
-        "driver_number": 50,
-        "pit_duration": 23.8,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:05:06.885000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 24.1,
-        "lap_number": 43,
-        "driver_number": 11,
-        "pit_duration": 24.1,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:05:13.217000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 22.2,
-        "lap_number": 44,
-        "driver_number": 63,
-        "pit_duration": 22.2,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:05:30.270000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 24.5,
-        "lap_number": 44,
-        "driver_number": 81,
-        "pit_duration": 24.5,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:06:03.169000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 22.8,
-        "lap_number": 44,
-        "driver_number": 10,
-        "pit_duration": 22.8,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:43:05.921000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2191.6,
-        "lap_number": 44,
-        "driver_number": 30,
-        "pit_duration": 2191.6,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:43:08.055000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2192.4,
-        "lap_number": 44,
-        "driver_number": 55,
-        "pit_duration": 2192.4,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:43:09.856000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2178.9,
-        "lap_number": 44,
-        "driver_number": 50,
-        "pit_duration": 2178.9,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:43:12.544000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2172.9,
-        "lap_number": 44,
-        "driver_number": 11,
-        "pit_duration": 2172.9,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:43:16.515000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2181.8,
-        "lap_number": 44,
-        "driver_number": 23,
-        "pit_duration": 2181.8,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:05.187000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2314.9,
-        "lap_number": 45,
-        "driver_number": 3,
-        "pit_duration": 2314.9,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:07.494000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2315.8,
-        "lap_number": 45,
-        "driver_number": 16,
-        "pit_duration": 2315.8,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:09.684000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2309.6,
-        "lap_number": 45,
-        "driver_number": 44,
-        "pit_duration": 2309.6,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:12.495000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2315.3,
-        "lap_number": 45,
-        "driver_number": 12,
-        "pit_duration": 2315.3,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:15.953000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2312.4,
-        "lap_number": 45,
-        "driver_number": 1,
-        "pit_duration": 2312.4,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:19.646000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2295.3,
-        "lap_number": 45,
-        "driver_number": 63,
-        "pit_duration": 2295.3,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:22.257000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2272.0,
-        "lap_number": 45,
-        "driver_number": 81,
-        "pit_duration": 2272.0,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:25.021000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2284.6,
-        "lap_number": 45,
-        "driver_number": 41,
-        "pit_duration": 2284.6,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:28.013000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2274.5,
-        "lap_number": 45,
-        "driver_number": 43,
-        "pit_duration": 2274.5,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:31.697000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2256.2,
-        "lap_number": 45,
-        "driver_number": 10,
-        "pit_duration": 2256.2,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:32.993000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2272.9,
-        "lap_number": 45,
-        "driver_number": 27,
-        "pit_duration": 2272.9,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:35.416000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2268.4,
-        "lap_number": 45,
-        "driver_number": 87,
-        "pit_duration": 2268.4,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:41.048000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2270.0,
-        "lap_number": 45,
-        "driver_number": 5,
-        "pit_duration": 2270.0,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:43.493000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 2265.5,
-        "lap_number": 45,
-        "driver_number": 6,
-        "pit_duration": 2265.5,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:45.265000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 60.5,
-        "lap_number": 45,
-        "driver_number": 30,
-        "pit_duration": 60.5,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:47.341000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 58.6,
-        "lap_number": 45,
-        "driver_number": 55,
-        "pit_duration": 58.6,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:48.505000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 57.3,
-        "lap_number": 45,
-        "driver_number": 50,
-        "pit_duration": 57.3,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:51.590000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 57.0,
-        "lap_number": 45,
-        "driver_number": 11,
-        "pit_duration": 57.0,
-        "stop_duration": null
-      },
-      {
-        "date": "2026-11-01T21:45:53.158000+00:00",
-        "session_key": 11404,
-        "meeting_key": 1298,
-        "lane_duration": 54.8,
-        "lap_number": 45,
-        "driver_number": 23,
-        "pit_duration": 54.8,
-        "stop_duration": null
-      },
-      {
         "date": "2026-11-01T22:07:04.069000+00:00",
         "session_key": 11404,
         "meeting_key": 1298,
@@ -60402,6 +60239,556 @@
         "driver_number": 11,
         "pit_duration": 29.8,
         "stop_duration": null
+      },
+      {
+        "date": "2026-11-01T20:08:12.615000+00:00",
+        "session_key": 11404,
+        "lane_duration": 23.958,
+        "lap_number": 3,
+        "driver_number": 14,
+        "meeting_key": 1298,
+        "stop_duration": 5.3,
+        "pit_duration": 23.958
+      },
+      {
+        "date": "2026-11-01T20:08:18.168000+00:00",
+        "session_key": 11404,
+        "lane_duration": 27.18,
+        "lap_number": 3,
+        "driver_number": 18,
+        "meeting_key": 1298,
+        "stop_duration": 9.9,
+        "pit_duration": 27.18
+      },
+      {
+        "date": "2026-11-01T20:14:14.119000+00:00",
+        "session_key": 11404,
+        "lane_duration": 23.9,
+        "lap_number": 7,
+        "driver_number": 6,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 23.9
+      },
+      {
+        "date": "2026-11-01T20:20:04.023000+00:00",
+        "session_key": 11404,
+        "lane_duration": 22.855,
+        "lap_number": 11,
+        "driver_number": 30,
+        "meeting_key": 1298,
+        "stop_duration": 2.5,
+        "pit_duration": 22.855
+      },
+      {
+        "date": "2026-11-01T20:28:11.372000+00:00",
+        "session_key": 11404,
+        "lane_duration": 22.965,
+        "lap_number": 17,
+        "driver_number": 10,
+        "meeting_key": 1298,
+        "stop_duration": 2.6,
+        "pit_duration": 22.965
+      },
+      {
+        "date": "2026-11-01T20:29:42.763000+00:00",
+        "session_key": 11404,
+        "lane_duration": 22.012,
+        "lap_number": 18,
+        "driver_number": 23,
+        "meeting_key": 1298,
+        "stop_duration": 2.2,
+        "pit_duration": 22.012
+      },
+      {
+        "date": "2026-11-01T20:40:15.610000+00:00",
+        "session_key": 11404,
+        "lane_duration": 22.681,
+        "lap_number": 26,
+        "driver_number": 81,
+        "meeting_key": 1298,
+        "stop_duration": 5.2,
+        "pit_duration": 22.681
+      },
+      {
+        "date": "2026-11-01T20:41:17.628000+00:00",
+        "session_key": 11404,
+        "lane_duration": 22.466,
+        "lap_number": 27,
+        "driver_number": 3,
+        "meeting_key": 1298,
+        "stop_duration": 2.3,
+        "pit_duration": 22.466
+      },
+      {
+        "date": "2026-11-01T20:41:19.243000+00:00",
+        "session_key": 11404,
+        "lane_duration": 28.706,
+        "lap_number": 27,
+        "driver_number": 16,
+        "meeting_key": 1298,
+        "stop_duration": 8.7,
+        "pit_duration": 28.706
+      },
+      {
+        "date": "2026-11-01T20:42:42.784000+00:00",
+        "session_key": 11404,
+        "lane_duration": 22.734,
+        "lap_number": 28,
+        "driver_number": 44,
+        "meeting_key": 1298,
+        "stop_duration": 2.5,
+        "pit_duration": 22.734
+      },
+      {
+        "date": "2026-11-01T20:46:33.057000+00:00",
+        "session_key": 11404,
+        "lane_duration": 28.9,
+        "lap_number": 30,
+        "driver_number": 11,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 28.9
+      },
+      {
+        "date": "2026-11-01T20:46:56.060000+00:00",
+        "session_key": 11404,
+        "lane_duration": 26.712,
+        "lap_number": 30,
+        "driver_number": 77,
+        "meeting_key": 1298,
+        "stop_duration": 6.2,
+        "pit_duration": 26.712
+      },
+      {
+        "date": "2026-11-01T20:47:27.400000+00:00",
+        "session_key": 11404,
+        "lane_duration": 21.929,
+        "lap_number": 31,
+        "driver_number": 27,
+        "meeting_key": 1298,
+        "stop_duration": 2.7,
+        "pit_duration": 21.929
+      },
+      {
+        "date": "2026-11-01T20:49:48.360000+00:00",
+        "session_key": 11404,
+        "lane_duration": 33.926,
+        "lap_number": 33,
+        "driver_number": 63,
+        "meeting_key": 1298,
+        "stop_duration": 13.8,
+        "pit_duration": 33.926
+      },
+      {
+        "date": "2026-11-01T20:51:31.260000+00:00",
+        "session_key": 11404,
+        "lane_duration": 23.343,
+        "lap_number": 34,
+        "driver_number": 43,
+        "meeting_key": 1298,
+        "stop_duration": 3.0,
+        "pit_duration": 23.343
+      },
+      {
+        "date": "2026-11-01T20:52:46.061000+00:00",
+        "session_key": 11404,
+        "lane_duration": 22.823,
+        "lap_number": 35,
+        "driver_number": 41,
+        "meeting_key": 1298,
+        "stop_duration": 2.6,
+        "pit_duration": 22.823
+      },
+      {
+        "date": "2026-11-01T20:53:28.391000+00:00",
+        "session_key": 11404,
+        "lane_duration": 22.876,
+        "lap_number": 35,
+        "driver_number": 50,
+        "meeting_key": 1298,
+        "stop_duration": 2.9,
+        "pit_duration": 22.876
+      },
+      {
+        "date": "2026-11-01T20:54:47.604000+00:00",
+        "session_key": 11404,
+        "lane_duration": 22.572,
+        "lap_number": 36,
+        "driver_number": 55,
+        "meeting_key": 1298,
+        "stop_duration": 2.7,
+        "pit_duration": 22.572
+      },
+      {
+        "date": "2026-11-01T20:57:13.791000+00:00",
+        "session_key": 11404,
+        "lane_duration": 22.546,
+        "lap_number": 38,
+        "driver_number": 5,
+        "meeting_key": 1298,
+        "stop_duration": 2.9,
+        "pit_duration": 22.546
+      },
+      {
+        "date": "2026-11-01T20:57:50.441000+00:00",
+        "session_key": 11404,
+        "lane_duration": 24.708,
+        "lap_number": 39,
+        "driver_number": 1,
+        "meeting_key": 1298,
+        "stop_duration": 6.0,
+        "pit_duration": 24.708
+      },
+      {
+        "date": "2026-11-01T20:59:53.750000+00:00",
+        "session_key": 11404,
+        "lane_duration": 22.59,
+        "lap_number": 40,
+        "driver_number": 87,
+        "meeting_key": 1298,
+        "stop_duration": 2.9,
+        "pit_duration": 22.59
+      },
+      {
+        "date": "2026-11-01T21:01:25.200000+00:00",
+        "session_key": 11404,
+        "lane_duration": 22.611,
+        "lap_number": 41,
+        "driver_number": 6,
+        "meeting_key": 1298,
+        "stop_duration": 5.0,
+        "pit_duration": 22.611
+      },
+      {
+        "date": "2026-11-01T21:01:52.270000+00:00",
+        "session_key": 11404,
+        "lane_duration": 25.43,
+        "lap_number": 41,
+        "driver_number": 23,
+        "meeting_key": 1298,
+        "stop_duration": 5.7,
+        "pit_duration": 25.43
+      },
+      {
+        "date": "2026-11-01T21:02:57.347000+00:00",
+        "session_key": 11404,
+        "lane_duration": 22.581,
+        "lap_number": 42,
+        "driver_number": 30,
+        "meeting_key": 1298,
+        "stop_duration": 2.3,
+        "pit_duration": 22.581
+      },
+      {
+        "date": "2026-11-01T21:03:07.066000+00:00",
+        "session_key": 11404,
+        "lane_duration": 23.738,
+        "lap_number": 43,
+        "driver_number": 12,
+        "meeting_key": 1298,
+        "stop_duration": 4.3,
+        "pit_duration": 23.738
+      },
+      {
+        "date": "2026-11-01T21:04:44.347000+00:00",
+        "session_key": 11404,
+        "lane_duration": 23.806,
+        "lap_number": 44,
+        "driver_number": 44,
+        "meeting_key": 1298,
+        "stop_duration": 3.6,
+        "pit_duration": 23.806
+      },
+      {
+        "date": "2026-11-01T21:04:53.636000+00:00",
+        "session_key": 11404,
+        "lane_duration": 23.802,
+        "lap_number": 43,
+        "driver_number": 50,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 23.802
+      },
+      {
+        "date": "2026-11-01T21:05:06.885000+00:00",
+        "session_key": 11404,
+        "lane_duration": 24.1,
+        "lap_number": 43,
+        "driver_number": 11,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 24.1
+      },
+      {
+        "date": "2026-11-01T21:05:13.217000+00:00",
+        "session_key": 11404,
+        "lane_duration": 22.264,
+        "lap_number": 44,
+        "driver_number": 63,
+        "meeting_key": 1298,
+        "stop_duration": 2.4,
+        "pit_duration": 22.264
+      },
+      {
+        "date": "2026-11-01T21:05:30.270000+00:00",
+        "session_key": 11404,
+        "lane_duration": 24.559,
+        "lap_number": 44,
+        "driver_number": 81,
+        "meeting_key": 1298,
+        "stop_duration": 4.4,
+        "pit_duration": 24.559
+      },
+      {
+        "date": "2026-11-01T21:06:03.169000+00:00",
+        "session_key": 11404,
+        "lane_duration": 22.8,
+        "lap_number": 44,
+        "driver_number": 10,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 22.8
+      },
+      {
+        "date": "2026-11-01T21:43:05.921000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2191.6,
+        "lap_number": 44,
+        "driver_number": 30,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 2191.6
+      },
+      {
+        "date": "2026-11-01T21:43:08.055000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2192.4,
+        "lap_number": 44,
+        "driver_number": 55,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 2192.4
+      },
+      {
+        "date": "2026-11-01T21:43:09.856000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2178.9,
+        "lap_number": 44,
+        "driver_number": 50,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 2178.9
+      },
+      {
+        "date": "2026-11-01T21:43:12.544000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2172.9,
+        "lap_number": 44,
+        "driver_number": 11,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 2172.9
+      },
+      {
+        "date": "2026-11-01T21:43:16.515000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2181.8,
+        "lap_number": 44,
+        "driver_number": 23,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 2181.8
+      },
+      {
+        "date": "2026-11-01T21:45:05.195000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2314.937,
+        "lap_number": 45,
+        "driver_number": 3,
+        "meeting_key": 1298,
+        "stop_duration": 32.4,
+        "pit_duration": 2314.937
+      },
+      {
+        "date": "2026-11-01T21:45:07.494000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2315.8,
+        "lap_number": 45,
+        "driver_number": 16,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 2315.8
+      },
+      {
+        "date": "2026-11-01T21:45:09.684000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2309.6,
+        "lap_number": 45,
+        "driver_number": 44,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 2309.6
+      },
+      {
+        "date": "2026-11-01T21:45:12.495000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2315.3,
+        "lap_number": 45,
+        "driver_number": 12,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 2315.3
+      },
+      {
+        "date": "2026-11-01T21:45:15.953000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2312.4,
+        "lap_number": 45,
+        "driver_number": 1,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 2312.4
+      },
+      {
+        "date": "2026-11-01T21:45:19.646000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2295.3,
+        "lap_number": 45,
+        "driver_number": 63,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 2295.3
+      },
+      {
+        "date": "2026-11-01T21:45:22.257000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2272.0,
+        "lap_number": 45,
+        "driver_number": 81,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 2272.0
+      },
+      {
+        "date": "2026-11-01T21:45:25.021000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2284.6,
+        "lap_number": 45,
+        "driver_number": 41,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 2284.6
+      },
+      {
+        "date": "2026-11-01T21:45:28.013000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2274.5,
+        "lap_number": 45,
+        "driver_number": 43,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 2274.5
+      },
+      {
+        "date": "2026-11-01T21:45:31.697000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2256.2,
+        "lap_number": 45,
+        "driver_number": 10,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 2256.2
+      },
+      {
+        "date": "2026-11-01T21:45:32.993000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2272.9,
+        "lap_number": 45,
+        "driver_number": 27,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 2272.9
+      },
+      {
+        "date": "2026-11-01T21:45:35.416000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2268.4,
+        "lap_number": 45,
+        "driver_number": 87,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 2268.4
+      },
+      {
+        "date": "2026-11-01T21:45:41.048000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2270.0,
+        "lap_number": 45,
+        "driver_number": 5,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 2270.0
+      },
+      {
+        "date": "2026-11-01T21:45:43.494000+00:00",
+        "session_key": 11404,
+        "lane_duration": 2265.561,
+        "lap_number": 45,
+        "driver_number": 6,
+        "meeting_key": 1298,
+        "stop_duration": 12.0,
+        "pit_duration": 2265.561
+      },
+      {
+        "date": "2026-11-01T21:45:45.268000+00:00",
+        "session_key": 11404,
+        "lane_duration": 60.513,
+        "lap_number": 45,
+        "driver_number": 30,
+        "meeting_key": 1298,
+        "stop_duration": 25.9,
+        "pit_duration": 60.513
+      },
+      {
+        "date": "2026-11-01T21:45:47.341000+00:00",
+        "session_key": 11404,
+        "lane_duration": 58.647,
+        "lap_number": 45,
+        "driver_number": 55,
+        "meeting_key": 1298,
+        "stop_duration": 18.5,
+        "pit_duration": 58.647
+      },
+      {
+        "date": "2026-11-01T21:45:48.505000+00:00",
+        "session_key": 11404,
+        "lane_duration": 57.345,
+        "lap_number": 45,
+        "driver_number": 50,
+        "meeting_key": 1298,
+        "stop_duration": 15.9,
+        "pit_duration": 57.345
+      },
+      {
+        "date": "2026-11-01T21:45:51.590000+00:00",
+        "session_key": 11404,
+        "lane_duration": 57.0,
+        "lap_number": 45,
+        "driver_number": 11,
+        "meeting_key": 1298,
+        "stop_duration": null,
+        "pit_duration": 57.0
+      },
+      {
+        "date": "2026-11-01T21:45:53.165000+00:00",
+        "session_key": 11404,
+        "lane_duration": 54.818,
+        "lap_number": 45,
+        "driver_number": 23,
+        "meeting_key": 1298,
+        "stop_duration": 15.7,
+        "pit_duration": 54.818
       }
     ],
     "race_control": [
