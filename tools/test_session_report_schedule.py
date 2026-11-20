@@ -2,12 +2,28 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
+import requests
 
-from session_report_schedule import due_meeting
+from session_report_schedule import due_meeting, session_catalog
 from weekend_report import save_json
 
 
 class SessionScheduleTests(unittest.TestCase):
+    def test_auth_restriction_uses_cached_schedule_but_server_errors_raise(self):
+        response = requests.Response()
+        response.status_code = 401
+        error = requests.HTTPError(response=response)
+        now = datetime(2026, 11, 20, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            save_json(root / 'catalog/sessions.json', [{'session_key': 1}])
+            with patch('session_report_schedule.fetch', side_effect=error):
+                self.assertEqual(session_catalog(root, now), [{'session_key': 1}])
+                response.status_code = 500
+                with self.assertRaises(requests.HTTPError):
+                    session_catalog(root, now)
+
     def test_end_delay_retry_and_correction_checkpoints(self):
         end = datetime(2026, 11, 8, 19, tzinfo=timezone.utc)
         session = dict(session_name="Race", session_key=1, meeting_key=2, date_end=end.isoformat())

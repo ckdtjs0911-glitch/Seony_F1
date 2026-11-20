@@ -551,9 +551,16 @@ def render(snapshots, output, now=None, starting_tyre_summaries=None):
 
 def collect(meeting_key=None, output_root=None):
     now = datetime.now(timezone.utc)
-    sessions = fetch(
-        "sessions", {"meeting_key": meeting_key} if meeting_key else {"year": now.year}
-    )
+    try:
+        sessions = fetch(
+            "sessions", {"meeting_key": meeting_key} if meeting_key else {"year": now.year}
+        )
+    except requests.HTTPError as exc:
+        catalog = (output_root or ROOT / "reports") / "catalog" / "sessions.json"
+        if exc.response is None or exc.response.status_code != 401 or not catalog.exists():
+            raise
+        sessions = load_json(catalog)
+        print("OpenF1 authentication restriction: using saved session metadata.")
     if meeting_key is None:
         past = [
             s
@@ -611,6 +618,9 @@ def collect(meeting_key=None, output_root=None):
             }
             save_json(path, snapshot)
         except (requests.RequestException, ValueError) as exc:
+            if isinstance(exc, requests.HTTPError) and exc.response is not None and exc.response.status_code == 401:
+                # Stop publication rather than labeling cached data as refreshed.
+                raise
             error = f"{type(exc).__name__}: {exc}"
             errors.append(f"{name}: {error}")
             snapshot = dict(previous) if previous else {"session": session, "data": {}}
@@ -646,6 +656,8 @@ def main():
         help="OpenF1 meeting_key; default: most recent started weekend",
     )
     parser.add_argument("--output-root", type=Path)
+    parser.add_argument("--defer-auth", action="store_true",
+                        help="Preserve published reports and defer live-window HTTP 401 to next schedule")
     parser.add_argument(
         "--offline",
         type=Path,
@@ -656,10 +668,29 @@ def main():
         if args.offline:
             render(load_offline(args.offline), args.offline / "weekend-report.html")
             return 0
-        return collect(args.meeting, args.output_root)
+        result = collect(args.meeting, args.output_root)
+        if args.defer_auth:
+            write_collection_output(result == 0)
+        return result
     except (requests.RequestException, ValueError) as exc:
+        if args.defer_auth and isinstance(exc, requests.HTTPError) and exc.response is not None and exc.response.status_code == 401:
+            write_collection_output(False)
+            message = "OpenF1 HTTP 401: collection deferred; published reports preserved. Retry on next schedule."
+            print(message)
+            import os
+            if os.environ.get("GITHUB_STEP_SUMMARY"):
+                with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+                    handle.write(message + "\n")
+            return 0
         print(f"Collection failed; existing reports preserved: {exc}", file=sys.stderr)
         return 1
+
+
+def write_collection_output(collected):
+    import os
+    if os.environ.get("GITHUB_OUTPUT"):
+        with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+            handle.write(f"collected={'true' if collected else 'false'}\n")
 
 
 if __name__ == "__main__":

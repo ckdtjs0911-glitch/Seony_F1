@@ -18,7 +18,7 @@ jobs:
   report:
     outputs:
       source_sha: ${{ steps.report_commit.outputs.sha }}
-      generated: ${{ steps.session_gate.outputs.run }}
+      generated: ${{ steps.collection.outputs.collected }}
     concurrency:
       group: weekend-report
       cancel-in-progress: false
@@ -51,6 +51,7 @@ jobs:
         if: steps.session_gate.outputs.run == 'true'
         run: python -m unittest discover -s tools -p 'test_*.py'
       - name: Collect five sessions and build report
+        id: collection
         if: steps.session_gate.outputs.run == 'true'
         env:
           MEETING: ${{ steps.session_gate.outputs.meeting }}
@@ -65,12 +66,12 @@ jobs:
             fi
             args+=(--meeting "$MEETING")
           fi
-          python tools/weekend_report.py --output-root reports "${args[@]}"
+          python tools/weekend_report.py --defer-auth --output-root reports "${args[@]}"
       - name: Update cumulative year, Grand Prix and session archive
-        if: steps.session_gate.outputs.run == 'true'
+        if: steps.collection.outputs.collected == 'true'
         run: python tools/build_archive.py
       - name: Retain reports and snapshots for download
-        if: always() && steps.session_gate.outputs.run == 'true'
+        if: always() && steps.collection.outputs.collected == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: f1-weekend-reports
@@ -78,7 +79,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
       - name: Commit successfully generated reports
-        if: steps.session_gate.outputs.run == 'true'
+        if: steps.collection.outputs.collected == 'true'
         id: report_commit
         run: |
           git config user.name 'github-actions[bot]'

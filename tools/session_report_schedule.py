@@ -3,8 +3,24 @@ import argparse
 import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import requests
 
 from weekend_report import ROOT, SESSION_NAMES, fetch, load_json, stamp
+
+
+def session_catalog(reports, now):
+    try:
+        return fetch("sessions", {"year": now.year})
+    except requests.HTTPError as exc:
+        if exc.response is None or exc.response.status_code != 401:
+            raise
+        # A year-wide query can include live sessions. Cached metadata is only
+        # used to schedule historical collection, never as newly collected data.
+        path = reports / "catalog" / "sessions.json"
+        if not path.exists():
+            raise
+        print("OpenF1 authentication restriction: using saved session schedule.")
+        return load_json(path)
 
 
 def due_meeting(sessions, reports, now):
@@ -37,7 +53,7 @@ def main():
     parser.add_argument("--meeting", type=int)
     args = parser.parse_args()
     now = datetime.now(timezone.utc)
-    meeting = args.meeting if args.manual else due_meeting(fetch("sessions", {"year": now.year}), args.reports, now)
+    meeting = args.meeting if args.manual else due_meeting(session_catalog(args.reports, now), args.reports, now)
     run = args.manual or meeting is not None
     output = f"run={'true' if run else 'false'}\nmeeting={meeting or ''}\n"
     if os.environ.get("GITHUB_OUTPUT"):

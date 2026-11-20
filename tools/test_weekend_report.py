@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import requests
+import os
 
 import weekend_report as report
 
@@ -53,6 +54,31 @@ def snapshot(name="Qualifying"):
 
 
 class ReportTests(unittest.TestCase):
+    def test_collection_uses_cached_metadata_but_never_publishes_on_data_401(self):
+        response = requests.Response()
+        response.status_code = 401
+        error = requests.HTTPError(response=response)
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            item = snapshot('Practice 1')
+            report.save_json(root / 'catalog/sessions.json', [item['session']])
+            with patch.object(report, 'fetch', side_effect=error), patch.object(report, 'render') as render:
+                with self.assertRaises(requests.HTTPError):
+                    report.collect(2, root)
+                render.assert_not_called()
+
+    def test_auth_deferral_preserves_report_and_disables_publication(self):
+        response = requests.Response()
+        response.status_code = 401
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / 'output'
+            page = Path(folder) / 'weekend-report.html'
+            page.write_text('previous report', encoding='utf-8')
+            with patch('sys.argv', ['weekend_report.py', '--defer-auth']), patch.dict(os.environ, {'GITHUB_OUTPUT': str(output)}), patch.object(report, 'collect', side_effect=requests.HTTPError(response=response)):
+                self.assertEqual(report.main(), 0)
+            self.assertEqual(output.read_text(encoding='utf-8'), 'collected=false\n')
+            self.assertEqual(page.read_text(encoding='utf-8'), 'previous report')
+
     def test_qualifying_laps_use_phase_start_messages_not_lap_times(self):
         item = snapshot()
         item["data"]["race_control"] = [
