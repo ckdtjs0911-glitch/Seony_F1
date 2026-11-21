@@ -429,6 +429,46 @@ def render_table(name, rows):
     )
 
 
+def render_beginner_notes(name, rows):
+    """Explain this session's observed records without inventing causes."""
+    facts = []
+    if name.startswith("Practice"):
+        meaning = "프랙티스는 차량과 타이어를 시험하고 주행을 준비하는 연습 세션입니다. 한 바퀴를 도는 시간인 랩타임은 짧을수록 빠릅니다. 연습 순위가 결승 출발 순서나 우승을 뜻하지는 않습니다."
+        timed = [r for r in rows if isinstance(r.get("fastest"), (int, float)) and r["fastest"] > 0]
+        if timed:
+            leader = min(timed, key=lambda r: r["fastest"])
+            facts.append(f'이번 세션의 관측 최속은 {leader["name"]}의 {seconds(leader["fastest"])}입니다. 삭제가 확인된 랩을 제외한 관측 기록 기준이며 API 순위와 다를 수 있습니다.')
+        limit = "선수마다 연료량, 타이어, 주행 시점과 연습 목적이 다릅니다. 최속 한 바퀴만으로 결승에서 누가 더 빠를지 단정할 수 없습니다."
+    elif name == "Qualifying":
+        meaning = "퀄리파잉은 결승 출발 순서를 정하기 위한 예선입니다. Q1·Q2·Q3는 예선의 단계이며, 각 칸은 API가 제공한 해당 단계의 기록입니다. 단계가 다르면 노면과 날씨도 달라질 수 있습니다."
+        leader = next((r for r in rows if r.get("position") == 1), None)
+        if leader:
+            facts.append(f'API 예선 결과 1위는 {leader["name"]}입니다. 그리드 페널티 등이 적용된 실제 결승 출발 위치는 별도로 확인해야 합니다.')
+        for index in range(3):
+            timed = [r for r in rows if isinstance(r["q"][index], (int, float)) and r["q"][index] > 0]
+            if timed:
+                best = min(timed, key=lambda r: r["q"][index])
+                facts.append(f'Q{index + 1} 제공 기록 중 최속: {best["name"]} · {seconds(best["q"][index])}.')
+        limit = "Q1~Q3 전체에서 가장 짧은 시간과 최종 예선 1위는 다를 수 있습니다. 같은 단계끼리 비교하고, 빈 칸만으로 탈락·미출전·기록 삭제를 단정하지 마세요."
+    else:
+        meaning = "레이스는 실제 결승입니다. 최종 순위와 한 바퀴 최속 기록은 다른 지표입니다. 한 바퀴가 빨라도 전체 주행 결과에서 앞선다는 뜻은 아닙니다."
+        leader = next((r for r in rows if r.get("position") == 1), None)
+        if leader:
+            facts.append(f'API 결승 결과 1위는 {leader["name"]}입니다.')
+            if leader.get("completed") is not None:
+                facts.append(f'이 선수의 결과상 완료 랩 수는 {leader["completed"]}랩입니다.')
+        limit = "격차가 초 단위이면 선두와의 시간 차이이며, +1 LAP은 한 바퀴 뒤라는 뜻입니다. DNF는 리타이어, DNS는 미출발, DSQ는 실격입니다. 피트·날씨·사고가 결과의 원인이었는지는 관련 기록을 따로 확인해야 합니다."
+    guide = "섹터는 한 바퀴를 나눈 구간입니다. 랩 중앙값은 비교 대상 랩들을 시간순이 아닌 기록 크기순으로 세웠을 때 가운데 값으로, 한 번의 최속 기록과 다릅니다. H·M·S는 하드·미디엄·소프트, I·W는 인터미디어트·웨트 타이어입니다. 타이어가 다른 기록은 조건을 함께 보세요."
+    facts_html = "".join(f"<li>{esc(text)}</li>" for text in facts)
+    return (
+        '<article class="beginner-notes"><h3>입문자를 위한 기록 설명</h3>'
+        f'<h4>이 세션은 무엇을 보는 경기인가요?</h4><p>{esc(meaning)}</p>'
+        f'<h4>이번 세션에서 확인된 기록</h4><ul>{facts_html or "<li>설명할 유효 기록이 아직 없습니다.</li>"}</ul>'
+        f'<h4>표와 차트 읽는 법</h4><p>{esc(guide)}</p>'
+        f'<h4>해석할 때 주의할 점</h4><p>{esc(limit)}</p></article>'
+    )
+
+
 def render_stints(rows):
     cards = []
     for row in rows:
@@ -498,7 +538,8 @@ def render(snapshots, output, now=None, starting_tyre_summaries=None):
             )
             continue
         body += (
-            render_table(name, rows) + render_verdicts(name, rows) + render_stints(rows)
+            render_beginner_notes(name, rows)
+            + render_table(name, rows) + render_verdicts(name, rows) + render_stints(rows)
         )
         body += render_race_events(item, rows)
         if name == "Race":
