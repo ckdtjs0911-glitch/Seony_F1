@@ -1,9 +1,8 @@
 name: F1 weekend reports
 
 on:
-  schedule:
-    # Detect completed sessions; generate only when collection is due. UTC.
-    - cron: '7,22,37,52 * * * *'
+  # Scheduled reports paused until 2026-11-28 00:00 Asia/Seoul.
+  # Resume cron: 7,22,37,52 * * * *
   workflow_dispatch:
     inputs:
       meeting:

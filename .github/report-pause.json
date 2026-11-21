@@ -1,0 +1,14 @@
+{
+  "resume_at": "2026-11-28T00:00:00+09:00",
+  "timezone": "Asia/Seoul",
+  "workflow_schedules": {
+    "weekend-report.yml": "7,22,37,52 * * * *",
+    "backfill-reports.yml": "43 18 * * 0"
+  },
+  "catch_up_on_resume": {
+    "meeting_key": 1300,
+    "sessions": [11416, 11420],
+    "names": ["Qualifying", "Race"]
+  },
+  "reason": "User requested no automatic reports this weekend and resumption next Saturday."
+}
