@@ -3655,7 +3655,8 @@
     "gp": "미국 그랑프리 · Las Vegas",
     "session": "레이스",
     "date": "2026-11-22T04:00:00+00:00",
-    "status": "예정 / 진행 중"
+    "attachment_assets": [],
+    "status": "수집 완료 (OpenF1 기준)"
   },
   {
     "year": 2026,
