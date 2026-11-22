@@ -1,5 +1,12 @@
 # Seony_F1 작업 규칙
 
+## 보고서 공유 링크
+
+- 보고서를 전달할 때 로컬 HTML 파일 링크와 함께 다른 사람이 열 수 있는 공개 링크도 제공한다.
+- Seony_F1의 공개 main 브랜치에 실제 저장된 HTML에 한해 GitHub HTML Preview 링크를 만든다: `https://htmlpreview.github.io/?https://github.com/ckdtjs0911-glitch/Seony_F1/blob/main/<보고서 경로>`.
+- 미커밋·미푸시 로컬 수정본을 공개 링크에 반영됐다고 말하지 않는다. 외부 미리보기 서비스임을 구분하며 브라우저 렌더링을 확인하지 않았으면 정상 표시를 보장하지 않는다.
+- 공개 링크는 주말·올해 전용·누적 보고서에 제공하며, 링크를 만들기 위해 변경 없는 보고서를 재생성하지 않는다.
+
 ## 보고서 참고 자료
 
 - OpenF1 원본과 함께 F1 COSMOS 한국어 사이트를 참고한다: https://f1cosmos.com/ko
