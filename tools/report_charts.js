@@ -60,7 +60,7 @@ function renderChart(svg, row, metric) {
   }
 }
 const phaseSelect=document.getElementById('qualifying-phase');
-function isQualifying(){return activeSession==='퀄리파잉';}
+function isQualifying(){return ['퀄리파잉','스프린트 퀄리파잉'].includes(activeSession);}
 function phaseLaps(row){const phase=isQualifying()?phaseSelect.value:'all';return phase==='all'?row.laps:row.laps.filter(l=>phase==='unknown'?l.phase==null:l.phase===+phase);}
 function draw(){hideTooltip();const row=rows.find(r=>r.session===activeSession&&r.number===+driverSelect.value);
   const heading=document.querySelector('#chart-time').closest('.chart-card').querySelector('h3');

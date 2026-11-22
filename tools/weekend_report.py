@@ -20,8 +20,8 @@ from race_overtakes import render_overtakes
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from openf1.util import openf1_client  # noqa: E402
 
-SESSION_NAMES = ("Practice 1", "Practice 2", "Practice 3", "Qualifying", "Race")
-LABELS = dict(zip(SESSION_NAMES, ("프랙티스 1", "프랙티스 2", "프랙티스 3", "퀄리파잉", "레이스")))
+SESSION_NAMES = ("Practice 1", "Practice 2", "Practice 3", "Sprint Qualifying", "Sprint", "Qualifying", "Race")
+LABELS = dict(zip(SESSION_NAMES, ("프랙티스 1", "프랙티스 2", "프랙티스 3", "스프린트 퀄리파잉", "스프린트 레이스", "퀄리파잉", "레이스")))
 ENDPOINTS = ("drivers", "session_result", "laps", "stints", "pit", "race_control")
 RETRY_STATUS = (429, 500, 502, 503, 504)
 ROOT = Path(__file__).resolve().parents[1]
@@ -200,7 +200,7 @@ def render_verdicts(name, rows):
             assessment = "관측 최속 기준 선두" if delta == 0 else f"세션 관측 최속보다 {delta:.3f}초 느림"
             caveat = (
                 " 단계(Q1~Q3)·타이어·주행 조건이 다른 기록을 함께 비교한 값이라 공식 순위와 다를 수 있습니다."
-                if name == "Qualifying"
+                if name in ("Qualifying", "Sprint Qualifying")
                 else ""
             )
             text = f"{assessment} · 최속 {seconds(row['fastest'])}, {row['records']}개 랩 기록으로 비교한 결과입니다.{caveat}"
@@ -220,7 +220,7 @@ def render_verdicts(name, rows):
 def qualifying_windows(snapshot):
     if (
         snapshot["session"].get("session_type") != "Qualifying"
-        and snapshot["session"]["session_name"] != "Qualifying"
+        and snapshot["session"]["session_name"] not in ("Qualifying", "Sprint Qualifying")
     ):
         return []
     controls = snapshot.get("data", {}).get("race_control", [])
@@ -393,12 +393,12 @@ def render_table(name, rows):
     best = min(bests) if bests else None
     head = (
         "<th>Q1</th><th>Q2</th><th>Q3</th><th>기록 단계</th>"
-        if name == "Qualifying"
+        if name in ("Qualifying", "Sprint Qualifying")
         else "<th>관측 최속</th><th>최속 대비</th>"
     )
     records = []
     for row in rows:
-        if name == "Qualifying":
+        if name in ("Qualifying", "Sprint Qualifying"):
             q = row["q"]
             extra = "".join(f"<td>{seconds(v)}</td>" for v in q)
             extra += f"<td>{qualifying_phase(q)}</td>"
@@ -440,7 +440,7 @@ def render_beginner_notes(name, rows):
             leader = min(timed, key=lambda r: r["fastest"])
             facts.append(f'이번 세션의 관측 최속은 {leader["name"]}의 {seconds(leader["fastest"])}입니다. 삭제가 확인된 랩을 제외한 관측 기록 기준이며 API 순위와 다를 수 있습니다.')
         limit = "선수마다 연료량, 타이어, 주행 시점과 연습 목적이 다릅니다. 최속 한 바퀴만으로 결승에서 누가 더 빠를지 단정할 수 없습니다."
-    elif name == "Qualifying":
+    elif name in ("Qualifying", "Sprint Qualifying"):
         meaning = "퀄리파잉은 결승 출발 순서를 정하기 위한 예선입니다. Q1·Q2·Q3는 예선의 단계이며, 각 칸은 API가 제공한 해당 단계의 기록입니다. 단계가 다르면 노면과 날씨도 달라질 수 있습니다."
         leader = next((r for r in rows if r.get("position") == 1), None)
         if leader:
@@ -498,7 +498,7 @@ METHODOLOGY = (
     "랩 중앙값과 스틴트 중앙값은 1랩, 피트 아웃 랩, 피트 진입 랩, 삭제 확인 랩, 시간이 누락된 랩을 제외하고 계산합니다. 연료량·트래픽·SC·VSC·트랙 변화는 보정하지 않으므로 순수 페이스나 롱런 우열을 단정할 수 없습니다. 스틴트별 표본 수를 함께 표시합니다.",
     "피트 진입 수는 관측된 랩의 시간 범위 안에서만 집계하며, 타이어 교체 횟수나 실제 정차 시간을 뜻하지 않습니다.",
     "공식 완료 랩(session_result)과 관측 랩 기록 수(laps)는 따로 집계합니다. 누락된 값은 0초나 0랩으로 바꾸지 않습니다.",
-    "스프린트 주말처럼 프랙티스 2·3이 열리지 않으면 '일정 없음'으로 표시합니다. 이 보고서는 지정된 5개 세션만 다루며 스프린트는 포함하지 않습니다.",
+    "스프린트 주말처럼 프랙티스 2·3이 열리지 않으면 '일정 없음'으로 표시합니다. 스프린트 퀄리파잉과 스프린트 레이스도 실제 열린 세션에 맞춰 포함합니다.",
     "원본 데이터와 수집 시각은 세션별 JSON 스냅샷에 보존합니다. 라이브 세션 중 공개 API 접근이 막히면 기존 스냅샷을 유지하고 다음 예약 실행에서 다시 조회합니다.",
 )
 
@@ -583,7 +583,7 @@ def render(snapshots, output, now=None, starting_tyre_summaries=None):
     chart_js = CHART_JS.read_text(encoding=ENCODING).replace("REPORT_ROWS", safe_json)
     page = f"""<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(location)} · F1 주말 전체 선수 보고서</title>
 <style>{STYLE}</style></head><body>
-<main><header><p class="eyebrow">SEONY F1 / WEEKEND REPORT</p><h1>{esc(location)} · 주말 전체 선수 보고서</h1><p>프랙티스 1·2·3 + 퀄리파잉 + 레이스<br>생성 시각 {display_time(now)} · 데이터 출처 OpenF1 API</p><button type="button" onclick="document.querySelectorAll('details').forEach(d=>d.open=true);window.print()">인쇄 / PDF 저장</button></header>
+<main><header><p class="eyebrow">SEONY F1 / WEEKEND REPORT</p><h1>{esc(location)} · 주말 전체 선수 보고서</h1><p>프랙티스 1·2·3 + 퀄리파잉 + 레이스 · 스프린트 주말 세션 포함<br>생성 시각 {display_time(now)} · 데이터 출처 OpenF1 API</p><button type="button" onclick="document.querySelectorAll('details').forEach(d=>d.open=true);window.print()">인쇄 / PDF 저장</button></header>
 <p class="notice">OpenF1 API 데이터로 만든 보고서이며, FIA 공식 결과와 별도로 대조하지 않았습니다. 데이터 대기·누락·갱신 실패는 구분해 표시합니다. 각 세션의 선수 목록은 drivers·session_result·laps 응답에 나온 선수를 모두 합친 것입니다. 일정에 따라 아직 열리지 않은 세션이 있을 수 있습니다.</p>
 <ul>{"".join(summary)}{race_shortcut}<li><a href="#lap-sector-analysis">랩타임 &amp; 섹터 분석</a> · 세션별 랩·섹터·타이어 차트</li></ul><input id="search" type="search" placeholder="선수 / 팀 검색 (예: 노리스, 멕라렌)" aria-label="선수 또는 팀 검색">{"".join(sections)}
 {CHART_SECTION}
@@ -618,6 +618,7 @@ def collect(meeting_key=None, output_root=None):
     directory = (output_root or ROOT / "reports") / f"weekend-{meeting_key}"
     save_json(directory / "sessions.json", sessions)
     snapshots, errors = [], []
+    changed = not (directory / "weekend-report.html").exists()
     for name in SESSION_NAMES:
         candidates = [s for s in sessions if s["session_name"] == name]
         if not candidates:
@@ -635,12 +636,12 @@ def collect(meeting_key=None, output_root=None):
         if session.get("is_cancelled"):
             snapshots.append({"session": session, "status": "취소", "data": {}})
             continue
-        if now < stamp(session["date_end"]) + timedelta(minutes=30):
+        if now < stamp(session["date_end"]) + timedelta(hours=1):
             snapshots.append(
                 previous
                 or {
                     "session": session,
-                    "status": "수집 대기 (세션 종료 30분 후 시작)",
+                    "status": "수집 대기 (세션 종료 1시간 후 시작)",
                     "data": {},
                 }
             )
@@ -650,6 +651,8 @@ def collect(meeting_key=None, output_root=None):
                 endpoint: fetch(endpoint, {"session_key": session["session_key"]})
                 for endpoint in ENDPOINTS
             }
+            if previous and "overtakes" in previous.get("data", {}):
+                data["overtakes"] = previous["data"]["overtakes"]
             if not data["drivers"] or not data["laps"] or not data["session_result"]:
                 raise ValueError(
                     "Required driver, lap or result data not available yet"
@@ -660,6 +663,7 @@ def collect(meeting_key=None, output_root=None):
                 "fetched_at": now.isoformat(),
                 "data": data,
             }
+            changed = changed or previous is None or previous.get("data") != data or previous.get("session") != session
             save_json(path, snapshot)
         except (requests.RequestException, ValueError) as exc:
             if isinstance(exc, requests.HTTPError) and exc.response is not None and exc.response.status_code == 401:
@@ -670,11 +674,12 @@ def collect(meeting_key=None, output_root=None):
             snapshot = dict(previous) if previous else {"session": session, "data": {}}
             snapshot.update(status="갱신 실패 / 재시도 대기", error=error)
         snapshots.append(snapshot)
-    render(snapshots, directory / "weekend-report.html", now)
+    if changed:
+        render(snapshots, directory / "weekend-report.html", now)
     print(directory / "weekend-report.html")
     for error in errors:
         print(error, file=sys.stderr)
-    return 1 if errors else 0
+    return 1 if errors else (0 if changed else 2)
 
 
 def load_offline(directory):
@@ -715,7 +720,7 @@ def main():
         result = collect(args.meeting, args.output_root)
         if args.defer_auth:
             write_collection_output(result == 0)
-        return result
+        return 0 if result == 2 else result
     except (requests.RequestException, ValueError) as exc:
         if args.defer_auth and isinstance(exc, requests.HTTPError) and exc.response is not None and exc.response.status_code == 401:
             write_collection_output(False)

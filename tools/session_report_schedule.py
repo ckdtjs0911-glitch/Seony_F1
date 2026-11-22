@@ -29,8 +29,8 @@ def due_meeting(sessions, reports, now):
         if session.get("session_name") not in SESSION_NAMES or session.get("is_cancelled"):
             continue
         end = stamp(session["date_end"])
-        # Allow API publication time and retry failures for a week.
-        if not end + timedelta(minutes=30) <= now <= end + timedelta(days=7):
+        # Process only in the first hour after the requested one-hour delay.
+        if not end + timedelta(hours=1) <= now < end + timedelta(hours=2):
             continue
         path = reports / f"weekend-{session['meeting_key']}" / "data" / f"{session['session_key']}.json"
         try:
@@ -39,8 +39,7 @@ def due_meeting(sessions, reports, now):
             complete = all(snapshot.get("data", {}).get(k) for k in ("drivers", "laps", "session_result"))
         except (OSError, ValueError, KeyError, TypeError):
             collected, complete = None, False
-        checkpoints = [end + timedelta(minutes=30), end + timedelta(hours=2), end + timedelta(hours=24)]
-        target = max(t for t in checkpoints if t <= now)
+        target = end + timedelta(hours=1)
         if not complete or collected is None or collected < target:
             due.append(session)
     return min(due, key=lambda s: stamp(s["date_end"]))["meeting_key"] if due else None

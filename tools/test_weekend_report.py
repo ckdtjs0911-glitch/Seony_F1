@@ -54,6 +54,20 @@ def snapshot(name="Qualifying"):
 
 
 class ReportTests(unittest.TestCase):
+    def test_unchanged_data_does_not_render_again(self):
+        item = snapshot('Practice 1')
+        item['data']['session_result'][0]['duration'] = 80.0
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            report.save_json(root / 'weekend-2/data/1.json', item)
+            (root / 'weekend-2/weekend-report.html').write_text('keep', encoding='utf-8')
+            def fetch(endpoint, params):
+                return [item['session']] if endpoint == 'sessions' else item['data'][endpoint]
+            with patch.object(report, 'fetch', side_effect=fetch), patch.object(report, 'render') as render:
+                self.assertEqual(report.collect(2, root), 2)
+                render.assert_not_called()
+            self.assertEqual((root / 'weekend-2/weekend-report.html').read_text(), 'keep')
+
     def test_collection_uses_cached_metadata_but_never_publishes_on_data_401(self):
         response = requests.Response()
         response.status_code = 401
