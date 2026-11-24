@@ -1,0 +1,148 @@
+"""Load FastF1 as a supplementary data source, keeping OpenF1 snapshots intact."""
+import argparse
+import hashlib
+import html
+import json
+import unicodedata
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT=Path(__file__).resolve().parents[1]
+CODES={'Practice 1':'FP1','Practice 2':'FP2','Practice 3':'FP3','Qualifying':'Q','Race':'R','Sprint':'S','Sprint Qualifying':'SQ'}
+PIN='f237036fdd7d3f982faf539ad01d57b115d139fe'
+
+
+def normalized(value):
+    return ''.join(c for c in unicodedata.normalize('NFKD',str(value)).casefold() if c.isalnum())
+
+
+def identity_check(snapshot, event, session_name, date):
+    s=snapshot['session']
+    if session_name!=s['session_name'] or normalized(event['Location'])!=normalized(s['location']):
+        raise ValueError('FastF1 event/session identity mismatch')
+    expected=datetime.fromisoformat(s['date_start'].replace('Z','+00:00'))
+    actual=datetime.fromisoformat(str(date).replace('Z','+00:00'))
+    if actual.tzinfo is None:actual=actual.replace(tzinfo=timezone.utc)
+    if actual.year!=s['year'] or abs((actual-expected).total_seconds())>6*3600:
+        raise ValueError('FastF1 year/session start mismatch')
+
+
+def compare_laps(snapshot,rows):
+    drivers={str(d['driver_number']):d for d in snapshot['data']['drivers']}
+    lookup={(str(l['driver_number']),int(l['lap_number'])):l for l in snapshot['data']['laps'] if isinstance(l.get('lap_duration'),(int,float))}
+    matched=[];identity=[]
+    for row in rows:
+        d=drivers.get(row['driver_number'])
+        if not d or normalized(d.get('name_acronym'))!=normalized(row['driver']):
+            if row['driver_number'] not in identity:identity.append(row['driver_number'])
+            continue
+        own=lookup.get((row['driver_number'],row['lap_number']))
+        if own and row['lap_time'] is not None:
+            matched.append({'driver_number':row['driver_number'],'lap_number':row['lap_number'],'openf1':own['lap_duration'],'fastf1':row['lap_time'],'difference':round(row['lap_time']-own['lap_duration'],6)})
+    return {'matched_laps':len(matched),'differences_over_2ms':sum(abs(r['difference'])>.002 for r in matched),'unmatched_driver_numbers':identity,'rows':matched}
+
+
+def collect(snapshot,directory,force=False,telemetry=True,authenticated=False):
+    import fastf1
+    import pandas as pd
+    directory.mkdir(parents=True,exist_ok=True)
+    s=snapshot['session'];key=s['session_key'];target=directory/f'{key}-fastf1.json'
+    fingerprint=hashlib.sha256(json.dumps({'session':s,'data':snapshot['data'],'pin':PIN},sort_keys=True).encode()).hexdigest()
+    if target.exists() and not force:
+        previous=json.loads(target.read_text(encoding='utf-8'))
+        if previous.get('fingerprint')==fingerprint and (not authenticated or previous.get('telemetry_loaded',False)>=telemetry):return False
+    cache=ROOT/'.cache'/'fastf1';cache.mkdir(parents=True,exist_ok=True);fastf1.Cache.configure(cache_dir=str(cache))
+    schedule=fastf1.get_event_schedule(s['year'],include_testing=False,backend='fastf1')
+    matching=schedule[schedule['Location'].map(normalized)==normalized(s['location'])]
+    if len(matching)!=1:raise ValueError('No unique FastF1 schedule entry for requested year and location')
+    event=matching.iloc[0]
+    session=fastf1.get_session(s['year'],int(event['RoundNumber']),CODES[s['session_name']])
+    identity_check(snapshot,event,session.name,session.date)
+    # Probe public access first. Never trigger an interactive account prompt in a report job.
+    import requests
+    response=requests.get('https://livetiming.formula1.com'+session.api_path+'SessionInfo.json',timeout=20)
+    private_access=response.status_code==200 or authenticated
+    results=[]
+    from fastf1.ergast import Ergast
+    endpoint={'Race':'get_race_results','Qualifying':'get_qualifying_results','Sprint':'get_sprint_results'}.get(s['session_name'])
+    if endpoint:
+        result=getattr(Ergast(),endpoint)(season=s['year'],round=int(event['RoundNumber']))
+        if len(result.content):results=json.loads(result.content[0].to_json(orient='records',date_format='iso'))
+    if private_access:
+        session.load(laps=True,telemetry=telemetry,weather=False,messages=True)
+        if session.laps is None or session.laps.empty:raise ValueError('FastF1 timing data unavailable')
+    def scalar(v):
+        if v is None or pd.isna(v):return None
+        if hasattr(v,'total_seconds'):return v.total_seconds()
+        if hasattr(v,'item'):return v.item()
+        return v
+    laps=[]
+    for _,r in (session.laps.iterrows() if private_access else []):
+        if pd.isna(r.get('LapNumber')) or pd.isna(r.get('DriverNumber')):continue
+        laps.append({'driver_number':str(r['DriverNumber']),'driver':str(r.get('Driver','')),'lap_number':int(r['LapNumber']),'lap_time':scalar(r.get('LapTime')),
+                     'sector_1':scalar(r.get('Sector1Time')),'sector_2':scalar(r.get('Sector2Time')),'sector_3':scalar(r.get('Sector3Time')),
+                     'compound':scalar(r.get('Compound')),'stint':scalar(r.get('Stint')),'deleted':scalar(r.get('Deleted')),'accurate':scalar(r.get('IsAccurate'))})
+    car={}
+    if telemetry and private_access:
+        for number,df in session.car_data.items():
+            car[str(number)]={'sample_count':len(df),'columns':list(df.columns),
+                              'first_sample':json.loads(df.head(1).to_json(orient='records',date_format='iso')),
+                              'last_sample':json.loads(df.tail(1).to_json(orient='records',date_format='iso'))}
+        if not car:raise ValueError('FastF1 telemetry requested but unavailable')
+    value={'status':'connected' if private_access else 'results_only' if results else 'schedule_only','session_key':key,'fingerprint':fingerprint,'fetched_at':datetime.now(timezone.utc).isoformat(),
+           'timing_http_status':response.status_code,'timing_auth_required':response.status_code==401,'public_result_source':'FastF1 Ergast/Jolpica backend',
+           'library_version':fastf1.__version__,'library_commit':PIN,'source':'https://docs.fastf1.dev/','api_path':session.api_path,
+           'identity':{'year':s['year'],'location':str(event['Location']),'event':str(event['EventName']),'round':int(event['RoundNumber']),'session':session.name,'date':str(session.date)},
+           'laps':laps,'results':results,'telemetry_loaded':bool(car),'car_data':car,
+           'comparison':compare_laps(snapshot,laps)}
+    old=json.loads(target.read_text(encoding='utf-8')) if target.exists() else {}
+    stable=lambda v:{k:r for k,r in v.items() if k!='fetched_at'}
+    if stable(old)==stable(value):return False
+    tmp=target.with_suffix('.tmp');tmp.write_text(json.dumps(value,ensure_ascii=False,indent=2,allow_nan=False),encoding='utf-8');tmp.replace(target)
+    status_path=directory/f'{key}-fastf1-status.json'
+    if status_path.exists():status_path.unlink()
+    return True
+
+
+def render_source(snapshot):
+    s=snapshot['session'];key=s.get('session_key');directory=ROOT/'reports'/f'weekend-{s.get("meeting_key")}'/'media'
+    path=directory/f'{key}-fastf1.json';failure=directory/f'{key}-fastf1-status.json'
+    if not path.exists():
+        if failure.exists():return '<section class="fastf1-source"><h3>FastF1 보조 데이터</h3><p>조회 기능은 연결됐지만 이 세션의 데이터 수집은 완료하지 못했습니다. 기존 OpenF1 기록을 유지합니다.</p></section>'
+        return ''
+    v=json.loads(path.read_text(encoding='utf-8'))
+    if v.get('session_key')!=key:return ''
+    c=v['comparison'];count=sum(x['sample_count'] for x in v['car_data'].values())
+    if v['status']!='connected':
+        public=f'선수 결과 {len(v["results"])}명 조회 완료' if v['results'] else '해당 세션의 일정 조회 완료'
+        limitation='상세 랩·차량 데이터 서버가 F1 TV 인증을 요구해 조회를 보류했습니다.' if v.get('timing_auth_required') else '상세 랩·차량 데이터는 수집하지 못했습니다.'
+        return f'<section class="fastf1-source"><h3>FastF1 보조 데이터 연결</h3><p>{public} · {html.escape(v["identity"]["event"])} · {html.escape(v["identity"]["session"])}</p><p>{limitation} 랩·텔레메트리 대조는 완료로 처리하지 않았으며 기존 OpenF1 기록을 유지합니다.</p><p>조회 {html.escape(v["fetched_at"])} · FastF1 소스 {v["library_commit"][:12]} · <a href="https://docs.fastf1.dev/">FastF1 공식 문서</a> · 결과 출처 FastF1 Ergast/Jolpica 백엔드</p></section>'
+    return f'<section class="fastf1-source"><h3>FastF1 보조 데이터 연결</h3><p>실제 수집 완료 · {len(v["laps"]):,}개 랩 · 차량 샘플 {count:,}개 확인</p><p>동일 선수·동일 랩 {c["matched_laps"]:,}개 대조 · 0.002초 초과 차이 {c["differences_over_2ms"]:,}개 · 선수 번호·약어 불일치 {len(c["unmatched_driver_numbers"])}명. 기존 OpenF1 기록을 덮어쓰지 않았습니다.</p><p>수집 {html.escape(v["fetched_at"])} · FastF1 {html.escape(v["library_version"])} · 소스 {v["library_commit"][:12]}<br><a href="https://docs.fastf1.dev/">FastF1 공식 문서</a> · 같은 타이밍 원본을 사용할 수 있어 독립적인 공식 검증을 뜻하지 않습니다. 브레이크는 사용 여부이며 제동 압력이 아닙니다.</p></section>'
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--snapshot',type=Path);parser.add_argument('--root',type=Path,default=ROOT/'reports');parser.add_argument('--force',action='store_true');parser.add_argument('--timing-only',action='store_true');parser.add_argument('--authenticated',action='store_true',help='Use operator-configured F1 account credentials for detailed timing; never put credentials in command arguments');args=parser.parse_args()
+    import weekend_report as w
+    paths=[args.snapshot] if args.snapshot else sorted(args.root.glob('weekend-*/data/*.json'))
+    for path in paths:
+        snapshot=json.loads(path.read_text(encoding='utf-8'));s=snapshot.get('session',{})
+        if s.get('session_name') not in CODES or not snapshot.get('data'):continue
+        if not args.snapshot and datetime.now(timezone.utc).timestamp()-w.stamp(snapshot['fetched_at']).timestamp()>1800:continue
+        directory=path.parent.parent/'media'
+        try:
+            changed=collect(snapshot,directory,args.force,not args.timing_only,args.authenticated)
+            if changed:
+                w.render(w.load_offline(path.parent.parent),path.parent.parent/'weekend-report.html')
+                if s['session_name'] in ('Race','Qualifying'):w.render([snapshot],path.parent.parent/('race-report.html' if s['session_name']=='Race' else 'qualifying-report.html'))
+            print(f'FastF1 {s["session_key"]}: {"updated" if changed else "unchanged"}')
+        except Exception as exc:
+            directory.mkdir(parents=True,exist_ok=True)
+            # Record a failed attempt separately; preserve every successful source and report.
+            status={'status':'unavailable','session_key':s['session_key'],'checked_at':datetime.now(timezone.utc).isoformat(),'error_type':type(exc).__name__}
+            (directory/f'{s["session_key"]}-fastf1-status.json').write_text(json.dumps(status,indent=2),encoding='utf-8')
+            print(f'FastF1 {s["session_key"]}: unavailable ({type(exc).__name__}: {exc})')
+            if args.snapshot:return 1
+    return 0
+
+
+if __name__=='__main__':raise SystemExit(main())

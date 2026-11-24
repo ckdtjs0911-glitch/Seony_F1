@@ -78,6 +78,14 @@ jobs:
           OPENF1_CLIENT_ID: ${{ secrets.OPENF1_CLIENT_ID }}
           OPENF1_CLIENT_SECRET: ${{ secrets.OPENF1_CLIENT_SECRET }}
         run: python tools/report_video.py --root reports
+      - name: Install pinned FastF1 source
+        if: steps.collection.outputs.collected == 'true'
+        run: |
+          git submodule update --init vendor/Fast-F1
+          python -m pip install ./vendor/Fast-F1
+      - name: Collect FastF1 supplementary timing and telemetry
+        if: steps.collection.outputs.collected == 'true'
+        run: python tools/fastf1_source.py --root reports
       - name: Update cumulative year, Grand Prix and session archive
         if: steps.collection.outputs.collected == 'true'
         run: python tools/build_archive.py

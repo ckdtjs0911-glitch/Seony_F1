@@ -6,7 +6,18 @@
 `vendor/Fast-F1` Git submodule로 연결했습니다. 원본의 문서·예제·MIT 라이선스를
 유지하며, 랩·섹터·타이어·텔레메트리 분석을 위한 보조 자료로 참고합니다.
 실제 데이터 사용 기준은 `AGENTS.md`의 보고서 참고 자료 규칙을 따릅니다.
-이 연결만으로 자동 수집이 실행되거나 기존 보고서 데이터가 바뀌지는 않습니다.
+실제 연결 도구는 `tools/fastf1_source.py`입니다. 새 세션 보고서 생성 시 일정·공개 결과를
+조회하고, 접근 가능한 경우 랩·텔레메트리를 수집·대조합니다. 상세 서버가 401을 반환하면
+인증 대기로 구분하고 기존 OpenF1 기록을 보존합니다. F1 TV 인증 없이 결과만 조회한 상태를
+랩·텔레메트리 연결 완료로 표시하지 않습니다.
+
+```bash
+python -m pip install ./vendor/Fast-F1
+python tools/fastf1_source.py --snapshot reports/weekend-1300/data/11420.json
+```
+
+계정 인증은 운영자가 별도로 구성한 뒤 `--authenticated`로 사용합니다. 암호·토큰은 저장소에
+넣지 않습니다. 상세 응답 캐시는 Git에서 제외된 `.cache/fastf1/`에 보관합니다.
 
 소스를 함께 내려받으려면:
 
