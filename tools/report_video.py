@@ -9,7 +9,7 @@ import math
 from datetime import datetime, timezone
 from pathlib import Path
 
-VERSION = 1
+VERSION = 4
 ROOT = Path(__file__).resolve().parents[1]
 REFERENCE = "https://www.instagram.com/reel/DgCU86yhjUz/"
 
@@ -104,7 +104,7 @@ def render_videos(snapshot, source, directory):
     fonts = {s: ImageFont.truetype(font_path(), s) for s in [15, 18, 22, 26, 34]}
     names = {x["driver_number"]: x for x in snapshot["data"]["drivers"]}
     colors = {d: "#" + (x.get("team_colour") or "b6c7dc") for d, x in names.items()}
-    W, H, fps = 1280, 720, 20
+    W, H, fps = 1280, 720, 30
     videos = []
 
     def frame(title, subtitle):
@@ -149,8 +149,8 @@ def render_videos(snapshot, source, directory):
                 draw.text((x + 16, 155), name, font=fonts[26], fill=colors[driver])
                 if sample:
                     drs = sample.get("drs")
-                    drs_text = "작동" if drs in (10, 12, 14) else ("꺼짐" if drs in (0, 1, 8) else "미제공")
-                    text = f'{sample.get("speed", "—")} km/h   기어 {sample.get("n_gear", "—")}   DRS {drs_text}'
+                    drs_text = "   DRS 작동" if drs in (10, 12, 14) else ("   DRS 꺼짐" if drs in (0, 1, 8) else "")
+                    text = f'{sample.get("speed", "—")} km/h   기어 {sample.get("n_gear", "—")}{drs_text}'
                 else:
                     text = "차량 데이터 공백 (1초 초과)"
                 draw.text((x + 16, 203), text, font=fonts[22], fill="white")
@@ -182,7 +182,7 @@ def render_videos(snapshot, source, directory):
             yield im
     telemetry_file = f"{key}-telemetry.mp4"
     encode(telemetry_file, telemetry_frames())
-    videos.append({"file": telemetry_file, "title": f'결승 1·2위 · 랩 {raw["lap"]} 차량 데이터 비교', "description": "같은 UTC 시각에 맞춘 속도·가속 페달·브레이크 사용·기어 비교. DRS가 없으면 미제공으로 표시합니다. 약 3배속이며 실제 중계 영상은 포함하지 않습니다."})
+    videos.append({"file": telemetry_file, "title": f'결승 1·2위 · 랩 {raw["lap"]} 차량 데이터 비교', "description": "같은 UTC 시각에 맞춘 속도·가속 페달·브레이크 사용·기어 비교. 약 3배속이며 실제 중계 영상은 포함하지 않습니다."})
 
     # Sample the position feed at each leader lap completion, not each car's separate crossing.
     winner = pair[0]
@@ -202,6 +202,7 @@ def render_videos(snapshot, source, directory):
         raise ValueError("No valid lap-position chart samples")
 
     def lap_frames():
+        label_positions = {}
         for i in range(30 * fps):
             progress = maximum_lap * i / (30 * fps - 1)
             im, draw = frame("레이스 순위 흐름 · 랩 차트", f'우승자 각 랩 완료 시각의 순위 기록 | 랩 {min(maximum_lap, int(progress)):02d}/{maximum_lap} | 선 사이 이동은 표시용 애니메이션')
@@ -215,19 +216,43 @@ def render_videos(snapshot, source, directory):
             for lap in range(0, maximum_lap+1, 5):
                 x = xy(lap, 1)[0]
                 draw.text((x-8, bottom+10), str(lap), font=fonts[15], fill="#bacbe0")
+            labels = []
             for driver, points in chart.items():
                 shown = [p for p in points if p[0] <= progress]
                 if not shown:
                     continue
                 pixels = [xy(*p) for p in shown]
+                following = next((p for p in points if p[0] > progress), None)
+                if following:
+                    previous = shown[-1]
+                    fraction = (progress - previous[0]) / (following[0] - previous[0])
+                    eased = fraction * fraction * (3 - 2 * fraction)
+                    pixels.append(xy(progress, previous[1] + (following[1] - previous[1]) * eased))
                 if len(pixels) > 1:
                     draw.line(pixels, fill=colors[driver], width=3 if driver in pair else 1)
                 x, y = pixels[-1]
                 draw.ellipse((x-4,y-4,x+4,y+4), fill=colors[driver])
-            # Fixed driver legend avoids overlapping rank labels, including retired drivers.
-            for j, driver in enumerate(names):
-                y = 160 + j * 21
-                draw.text((1070, y), f'{names[driver].get("name_acronym", driver)} #{driver}', font=fonts[15], fill=colors[driver])
+                labels.append([y, driver, x])
+            # Labels follow the moving endpoints; pack close labels to remain readable.
+            labels.sort(key=lambda item: (item[0], item[1]))
+            previous_y = top - 20
+            adjusted = []
+            for y, driver, x in labels:
+                label_y = max(y, previous_y + 19)
+                adjusted.append([label_y, y, driver, x])
+                previous_y = label_y
+            ceiling = bottom + 5
+            for label in reversed(adjusted):
+                label[0] = min(label[0], ceiling)
+                ceiling = label[0] - 19
+            for label_y, y, driver, x in adjusted:
+                label_y = label_positions.get(driver, label_y) * .7 + label_y * .3
+                label_positions[driver] = label_y
+                label_x = min(1050, x + 12)
+                draw.line((x+4, y, label_x, label_y), fill=colors[driver], width=1)
+                draw.rounded_rectangle((label_x, label_y-10, label_x+205, label_y+10), radius=4, fill="#152339")
+                name = names[driver].get('last_name', str(driver)).title()
+                draw.text((label_x+5, label_y-10), f'{names[driver].get("name_acronym", driver)} · {name}', font=fonts[15], fill=colors[driver])
             draw.text((40, 658), "OpenF1 position · 순위 변화에는 피트·리타이어 등이 포함됩니다. 선 교차 수는 실제 추월 횟수가 아닙니다.", font=fonts[18], fill="#bacbe0")
             yield im
     lap_file = f"{key}-lap-chart.mp4"
@@ -239,6 +264,8 @@ def render_videos(snapshot, source, directory):
 
 
 def render_section(snapshot, media_root=None):
+    if snapshot['session'].get('session_name') != 'Race':
+        return ''
     key = snapshot["session"].get("session_key")
     meeting = snapshot["session"].get("meeting_key")
     directory = media_root or ROOT / "reports" / f"weekend-{meeting}" / "media"
@@ -249,15 +276,17 @@ def render_section(snapshot, media_root=None):
     if value.get("session_key") != key:
         return ""
     cards = []
+    from compare_player import render_player
+    player = render_player(snapshot, directory)
     for video in value["videos"]:
         asset = directory / Path(video["file"]).name
         if not asset.exists():
             continue
         uri = "data:video/mp4;base64," + base64.b64encode(asset.read_bytes()).decode()
-        cards.append(f'<h3>{html.escape(video["title"])}</h3><p>{html.escape(video["description"])}</p><video controls playsinline preload="none" style="width:100%;max-width:1280px;background:#0b1321" src="{uri}"></video><p><a download="{html.escape(asset.name)}" href="{uri}">MP4 영상 다운로드</a></p>')
+        cards.append(f'<h3>{html.escape(video["title"])}</h3><p>{html.escape(video["description"])}</p><video controls autoplay muted loop playsinline preload="metadata" style="width:100%;max-width:1280px;background:#0b1321" src="{uri}"></video><p><a download="{html.escape(asset.name)}" href="{uri}">MP4 영상 다운로드</a></p>')
     if not cards:
         return ""
-    return '<section id="data-videos"><h2>영상으로 보는 레이스</h2><p>실제 수집한 OpenF1 데이터로 만든 그래픽 영상입니다. 중계 장면이나 추정 제동 압력은 포함하지 않습니다.</p>' + "".join(cards) + f'<p>출처: <a href="https://openf1.org/docs/">OpenF1 car_data · position · laps</a> · 수집 {html.escape(value["fetched_at"])}<br>구성 참고: <a href="{REFERENCE}">라스베가스 랩 차트 릴스</a> (공개 설명만 확인, 영상 화면 미확인).</p></section>'
+    return '<section id="data-videos"><h2>영상으로 보는 레이스</h2><p>실제 수집한 OpenF1 데이터로 만든 그래픽 영상입니다. 중계 장면이나 추정 제동 압력은 포함하지 않습니다.</p>' + player + "".join(cards) + f'<p>출처: <a href="https://openf1.org/docs/">OpenF1 car_data · position · laps</a> · 수집 {html.escape(value["fetched_at"])}<br>구성 참고: <a href="{REFERENCE}">라스베가스 랩 차트 릴스</a> (공개 설명만 확인, 영상 화면 미확인).</p></section>'
 
 
 def main():
@@ -281,6 +310,9 @@ def main():
             if not args.offline:
                 source = collect(snapshot, directory, weekend_report.fetch)
             changed = render_videos(snapshot, source, directory)
+            from compare_player import collect_player
+            if not args.offline:
+                changed = collect_player(snapshot, directory, weekend_report.fetch) or changed
             if changed:
                 weekend_report.render([snapshot], path.parent.parent / "race-report.html")
                 weekend_report.render(weekend_report.load_offline(path.parent.parent), path.parent.parent / "weekend-report.html")

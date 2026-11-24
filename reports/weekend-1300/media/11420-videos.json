@@ -1,7 +1,7 @@
 {
-  "version": 1,
+  "version": 4,
   "session_key": 11420,
-  "signature": "6a67d21b930b7b1ac81efffffcca8038e035e6d687edc92fa4e4e6ce71e4fcd3",
+  "signature": "b31b723b44ca650686166d1711977f5ab28c658a1e30199370ea1e345579af18",
   "source_file": "11420-video-data.json",
   "source": "https://openf1.org/docs/",
   "reference": {
@@ -9,12 +9,12 @@
     "verified": "Public caption only; reel frames were inaccessible",
     "claim": "46 of 50 laps led; 30+ mid-lap lead changes (not independently confirmed)"
   },
-  "fetched_at": "2026-11-24T15:32:22.779967+00:00",
+  "fetched_at": "2026-11-24T15:47:18.531469+00:00",
   "videos": [
     {
       "file": "11420-telemetry.mp4",
       "title": "결승 1·2위 · 랩 49 차량 데이터 비교",
-      "description": "같은 UTC 시각에 맞춘 속도·가속 페달·브레이크 사용·기어 비교. DRS가 없으면 미제공으로 표시합니다. 약 3배속이며 실제 중계 영상은 포함하지 않습니다."
+      "description": "같은 UTC 시각에 맞춘 속도·가속 페달·브레이크 사용·기어 비교. 약 3배속이며 실제 중계 영상은 포함하지 않습니다."
     },
     {
       "file": "11420-lap-chart.mp4",

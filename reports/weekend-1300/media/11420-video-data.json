@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 3,
   "session": {
     "session_key": 11420,
     "session_type": "Race",
@@ -17,7 +17,7 @@
     "year": 2026,
     "is_cancelled": false
   },
-  "fetched_at": "2026-11-24T15:32:22.779967+00:00",
+  "fetched_at": "2026-11-24T15:47:18.531469+00:00",
   "drivers": [
     3,
     1

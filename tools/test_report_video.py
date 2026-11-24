@@ -23,10 +23,14 @@ class VideoTests(unittest.TestCase):
             manifest = {"session_key": 12, "fetched_at": "time", "videos": [{"file": "test.mp4", "title": "<test>", "description": "actual"}]}
             (root / "12-videos.json").write_text(json.dumps(manifest), encoding="utf-8")
             (root / "test.mp4").write_bytes(b"mp4")
-            snapshot = {"session": {"session_key": 12}}
+            snapshot = {"session": {"session_key": 12, "session_name": "Race"}}
             page = render_section(snapshot, root)
             self.assertIn("data:video/mp4;base64,bXA0", page)
             self.assertIn("&lt;test&gt;", page)
+            self.assertIn('autoplay muted loop playsinline', page)
+            snapshot['session']['session_name'] = 'Qualifying'
+            self.assertEqual(render_section(snapshot, root), '')
+            snapshot['session']['session_name'] = 'Race'
             manifest["session_key"] = 99
             (root / "12-videos.json").write_text(json.dumps(manifest), encoding="utf-8")
             self.assertEqual(render_section(snapshot, root), "")
