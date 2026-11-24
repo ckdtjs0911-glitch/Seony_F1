@@ -110,3 +110,19 @@ All drivers are included by default. Add `--driver 63` to select one driver.
 The command prints the API response as JSON and exits with an error if the request fails.
 Requests time out after 30 seconds. Live data requires the appropriate OpenF1 subscription
 and credentials; existing `OPENF1_CLIENT_ID` and `OPENF1_CLIENT_SECRET` bindings are supported.
+
+## 데이터 비교 영상
+
+레이스 보고서에 OpenF1 차량 데이터 비교(32초)와 전체 선수 랩별 순위 흐름(30초)을 내장합니다.
+HTML 파일 하나로 영상 재생과 MP4 다운로드가 가능합니다. 원본 응답과 출처는 해당 주말의
+`media/`에 보관합니다. 방송 영상은 사용하지 않습니다.
+
+```bash
+python -m pip install -r tools/video-requirements.txt
+python tools/report_video.py --snapshot reports/weekend-1300/data/11420.json
+```
+
+동기화는 같은 UTC 시각에 가장 최근 관측된 차량 샘플을 사용하며, 1초 넘는 공백은 미제공입니다.
+브레이크는 사용 여부이고 압력이 아닙니다. 랩 차트는 우승자의 각 랩 완료 시각의 순위를
+표시하며 피트·리타이어 등을 포함하므로 실제 추월 횟수로 해석하지 않습니다.
+같은 원본과 생성기 버전이면 다시 생성하지 않습니다. `--offline`은 저장 원본으로만 실행합니다.

@@ -244,7 +244,7 @@
     "meeting": 1233,
     "key": 9668,
     "gp": "중국 그랑프리 · Shanghai",
-    "session": "Sprint Qualifying",
+    "session": "스프린트 퀄리파잉",
     "date": "2024-04-19T07:30:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -254,7 +254,7 @@
     "meeting": 1233,
     "key": 9672,
     "gp": "중국 그랑프리 · Shanghai",
-    "session": "Sprint",
+    "session": "스프린트 레이스",
     "date": "2024-04-20T03:00:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -294,7 +294,7 @@
     "meeting": 1234,
     "key": 9502,
     "gp": "미국 그랑프리 · Miami",
-    "session": "Sprint Qualifying",
+    "session": "스프린트 퀄리파잉",
     "date": "2024-05-03T20:30:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -304,7 +304,7 @@
     "meeting": 1234,
     "key": 9506,
     "gp": "미국 그랑프리 · Miami",
-    "session": "Sprint",
+    "session": "스프린트 레이스",
     "date": "2024-05-04T16:00:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -544,7 +544,7 @@
     "meeting": 1239,
     "key": 9545,
     "gp": "오스트리아 그랑프리 · Spielberg",
-    "session": "Sprint Qualifying",
+    "session": "스프린트 퀄리파잉",
     "date": "2024-06-28T14:30:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -554,7 +554,7 @@
     "meeting": 1239,
     "key": 9549,
     "gp": "오스트리아 그랑프리 · Spielberg",
-    "session": "Sprint",
+    "session": "스프린트 레이스",
     "date": "2024-06-29T10:00:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -944,7 +944,7 @@
     "meeting": 1247,
     "key": 9612,
     "gp": "미국 그랑프리 · Austin",
-    "session": "Sprint Qualifying",
+    "session": "스프린트 퀄리파잉",
     "date": "2024-10-18T21:30:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -954,7 +954,7 @@
     "meeting": 1247,
     "key": 9616,
     "gp": "미국 그랑프리 · Austin",
-    "session": "Sprint",
+    "session": "스프린트 레이스",
     "date": "2024-10-19T18:00:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -1044,7 +1044,7 @@
     "meeting": 1249,
     "key": 9631,
     "gp": "브라질 그랑프리 · Interlagos",
-    "session": "Sprint Qualifying",
+    "session": "스프린트 퀄리파잉",
     "date": "2024-11-01T18:30:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -1054,7 +1054,7 @@
     "meeting": 1249,
     "key": 9635,
     "gp": "브라질 그랑프리 · Interlagos",
-    "session": "Sprint",
+    "session": "스프린트 레이스",
     "date": "2024-11-02T14:00:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -1144,7 +1144,7 @@
     "meeting": 1251,
     "key": 9650,
     "gp": "카타르 그랑프리 · Lusail",
-    "session": "Sprint Qualifying",
+    "session": "스프린트 퀄리파잉",
     "date": "2024-11-29T17:30:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -1154,7 +1154,7 @@
     "meeting": 1251,
     "key": 9654,
     "gp": "카타르 그랑프리 · Lusail",
-    "session": "Sprint",
+    "session": "스프린트 레이스",
     "date": "2024-11-30T14:00:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -1324,7 +1324,7 @@
     "meeting": 1255,
     "key": 9989,
     "gp": "중국 그랑프리 · Shanghai",
-    "session": "Sprint Qualifying",
+    "session": "스프린트 퀄리파잉",
     "date": "2025-03-21T07:30:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -1334,7 +1334,7 @@
     "meeting": 1255,
     "key": 9993,
     "gp": "중국 그랑프리 · Shanghai",
-    "session": "Sprint",
+    "session": "스프린트 레이스",
     "date": "2025-03-22T03:00:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -1524,7 +1524,7 @@
     "meeting": 1259,
     "key": 10024,
     "gp": "미국 그랑프리 · Miami",
-    "session": "Sprint Qualifying",
+    "session": "스프린트 퀄리파잉",
     "date": "2025-05-02T20:30:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -1534,7 +1534,7 @@
     "meeting": 1259,
     "key": 10028,
     "gp": "미국 그랑프리 · Miami",
-    "session": "Sprint",
+    "session": "스프린트 레이스",
     "date": "2025-05-03T16:00:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -1874,7 +1874,7 @@
     "meeting": 1265,
     "key": 9930,
     "gp": "벨기에 그랑프리 · Spa-Francorchamps",
-    "session": "Sprint Qualifying",
+    "session": "스프린트 퀄리파잉",
     "date": "2025-07-25T14:30:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -1884,7 +1884,7 @@
     "meeting": 1265,
     "key": 9934,
     "gp": "벨기에 그랑프리 · Spa-Francorchamps",
-    "session": "Sprint",
+    "session": "스프린트 레이스",
     "date": "2025-07-26T10:00:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -2174,7 +2174,7 @@
     "meeting": 1271,
     "key": 9879,
     "gp": "미국 그랑프리 · Austin",
-    "session": "Sprint Qualifying",
+    "session": "스프린트 퀄리파잉",
     "date": "2025-10-17T21:30:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -2184,7 +2184,7 @@
     "meeting": 1271,
     "key": 9883,
     "gp": "미국 그랑프리 · Austin",
-    "session": "Sprint",
+    "session": "스프린트 레이스",
     "date": "2025-10-18T17:00:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -2274,7 +2274,7 @@
     "meeting": 1273,
     "key": 9860,
     "gp": "브라질 그랑프리 · Interlagos",
-    "session": "Sprint Qualifying",
+    "session": "스프린트 퀄리파잉",
     "date": "2025-11-07T18:30:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -2284,7 +2284,7 @@
     "meeting": 1273,
     "key": 9864,
     "gp": "브라질 그랑프리 · Interlagos",
-    "session": "Sprint",
+    "session": "스프린트 레이스",
     "date": "2025-11-08T14:00:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -2374,7 +2374,7 @@
     "meeting": 1275,
     "key": 9841,
     "gp": "카타르 그랑프리 · Lusail",
-    "session": "Sprint Qualifying",
+    "session": "스프린트 퀄리파잉",
     "date": "2025-11-28T17:30:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -2384,7 +2384,7 @@
     "meeting": 1275,
     "key": 9845,
     "gp": "카타르 그랑프리 · Lusail",
-    "session": "Sprint",
+    "session": "스프린트 레이스",
     "date": "2025-11-29T14:00:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -2584,7 +2584,7 @@
     "meeting": 1280,
     "key": 11236,
     "gp": "중국 그랑프리 · Shanghai",
-    "session": "Sprint Qualifying",
+    "session": "스프린트 퀄리파잉",
     "date": "2026-03-13T07:30:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -2594,7 +2594,7 @@
     "meeting": 1280,
     "key": 11240,
     "gp": "중국 그랑프리 · Shanghai",
-    "session": "Sprint",
+    "session": "스프린트 레이스",
     "date": "2026-03-14T03:00:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -2774,7 +2774,7 @@
     "meeting": 1284,
     "key": 11271,
     "gp": "미국 그랑프리 · Miami",
-    "session": "Sprint Qualifying",
+    "session": "스프린트 퀄리파잉",
     "date": "2026-05-01T20:30:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -2784,7 +2784,7 @@
     "meeting": 1284,
     "key": 11275,
     "gp": "미국 그랑프리 · Miami",
-    "session": "Sprint",
+    "session": "스프린트 레이스",
     "date": "2026-05-02T16:00:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -2824,7 +2824,7 @@
     "meeting": 1285,
     "key": 11282,
     "gp": "캐나다 그랑프리 · Montreal",
-    "session": "Sprint Qualifying",
+    "session": "스프린트 퀄리파잉",
     "date": "2026-05-22T20:30:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -2834,7 +2834,7 @@
     "meeting": 1285,
     "key": 11286,
     "gp": "캐나다 그랑프리 · Montreal",
-    "session": "Sprint",
+    "session": "스프린트 레이스",
     "date": "2026-05-23T16:00:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -3024,7 +3024,7 @@
     "meeting": 1289,
     "key": 11317,
     "gp": "영국 그랑프리 · Silverstone",
-    "session": "Sprint Qualifying",
+    "session": "스프린트 퀄리파잉",
     "date": "2026-07-03T15:30:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -3034,7 +3034,7 @@
     "meeting": 1289,
     "key": 11321,
     "gp": "영국 그랑프리 · Silverstone",
-    "session": "Sprint",
+    "session": "스프린트 레이스",
     "date": "2026-07-04T11:00:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -3174,7 +3174,7 @@
     "meeting": 1292,
     "key": 11344,
     "gp": "네덜란드 그랑프리 · Zandvoort",
-    "session": "Sprint Qualifying",
+    "session": "스프린트 퀄리파잉",
     "date": "2026-08-21T14:30:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -3184,7 +3184,7 @@
     "meeting": 1292,
     "key": 11348,
     "gp": "네덜란드 그랑프리 · Zandvoort",
-    "session": "Sprint",
+    "session": "스프린트 레이스",
     "date": "2026-08-22T10:00:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -3424,7 +3424,7 @@
     "meeting": 1296,
     "key": 11379,
     "gp": "싱가포르 그랑프리 · Singapore",
-    "session": "Sprint Qualifying",
+    "session": "스프린트 퀄리파잉",
     "date": "2026-10-09T12:30:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
@@ -3434,7 +3434,7 @@
     "meeting": 1296,
     "key": 11383,
     "gp": "싱가포르 그랑프리 · Singapore",
-    "session": "Sprint",
+    "session": "스프린트 레이스",
     "date": "2026-10-10T09:00:00+00:00",
     "attachment_assets": [],
     "status": "보고서 데이터 수집 완료 / 텔레메트리는 별도 수집"
