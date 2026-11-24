@@ -583,13 +583,18 @@ def render(snapshots, output, now=None, starting_tyre_summaries=None):
             '<li><a href="#race-tyre-attachments">그랑프리별 타이어 컴파운드와 스타트 타이어</a></li>'
         )
 
+    if len(snapshots) == 1:
+        only = LABELS.get(snapshots[0]["session"]["session_name"], snapshots[0]["session"]["session_name"])
+        heading, coverage = f"{only} 보고서", f"{only} 단일 세션 보고서"
+    else:
+        heading, coverage = "주말 전체 선수 보고서", "프랙티스 1·2·3 + 퀄리파잉 + 레이스 · 스프린트 주말 세션 포함"
     safe_json = json.dumps(chart_data, ensure_ascii=False).replace("</", "<\\/")
     methodology = "".join(f"<li>{text}</li>" for text in METHODOLOGY)
     chart_css = CHART_CSS.read_text(encoding=ENCODING)
     chart_js = CHART_JS.read_text(encoding=ENCODING).replace("REPORT_ROWS", safe_json)
-    page = f"""<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(location)} · F1 주말 전체 선수 보고서</title>
+    page = f"""<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(location)} · F1 {esc(heading)}</title>
 <style>{STYLE}</style></head><body>
-<main><header><p class="eyebrow">SEONY F1 / WEEKEND REPORT</p><h1>{esc(location)} · 주말 전체 선수 보고서</h1><p>프랙티스 1·2·3 + 퀄리파잉 + 레이스 · 스프린트 주말 세션 포함<br>생성 시각 {display_time(now)} · 데이터 출처 OpenF1 API</p><button type="button" onclick="document.querySelectorAll('details').forEach(d=>d.open=true);window.print()">인쇄 / PDF 저장</button></header>
+<main><header><p class="eyebrow">SEONY F1 / WEEKEND REPORT</p><h1>{esc(location)} · {esc(heading)}</h1><p>{esc(coverage)}<br>생성 시각 {display_time(now)} · 데이터 출처 OpenF1 API</p><button type="button" onclick="document.querySelectorAll('details').forEach(d=>d.open=true);window.print()">인쇄 / PDF 저장</button></header>
 <p class="notice">OpenF1 API 데이터로 만든 보고서이며, FIA 공식 결과와 별도로 대조하지 않았습니다. 데이터 대기·누락·갱신 실패는 구분해 표시합니다. 각 세션의 선수 목록은 drivers·session_result·laps 응답에 나온 선수를 모두 합친 것입니다. 일정에 따라 아직 열리지 않은 세션이 있을 수 있습니다.</p>
 <ul>{"".join(summary)}{race_shortcut}<li><a href="#lap-sector-analysis">랩타임 &amp; 섹터 분석</a> · 세션별 랩·섹터·타이어 차트</li></ul><input id="search" type="search" placeholder="선수 / 팀 검색 (예: 노리스, 멕라렌)" aria-label="선수 또는 팀 검색">{"".join(sections)}
 {CHART_SECTION}

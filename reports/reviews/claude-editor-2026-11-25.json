@@ -1,0 +1,69 @@
+{
+  "date": "2026-11-25",
+  "editor": "Claude Code (interactive session; no nested Claude CLI call)",
+  "status": "completed",
+  "scope": {
+    "reports": [
+      "reports/weekend-1299/race-report.html",
+      "reports/weekend-1299/qualifying-report.html",
+      "reports/weekend-1300/race-report.html",
+      "reports/weekend-1300/qualifying-report.html"
+    ],
+    "generator_code": [
+      "tools/weekend_report.py",
+      "tools/race_events.py",
+      "tools/race_gaps.py",
+      "tools/race_gaps.js",
+      "tools/qualifying_replay.py",
+      "tools/qualifying_replay.js",
+      "tools/fastf1_source.py",
+      "tools/build_archive.py",
+      "tools/report_video.py"
+    ],
+    "snapshots": [
+      "reports/weekend-1299/data/11412.json",
+      "reports/weekend-1299/data/11408.json",
+      "reports/weekend-1300/data/11420.json",
+      "reports/weekend-1300/data/11416.json",
+      "reports/weekend-1299/media/11412-fastf1.json",
+      "reports/weekend-1300/media/11420-fastf1.json"
+    ],
+    "html_reading": "Visible text only; script, style, table rows and data URIs were stripped before reading."
+  },
+  "checks": [
+    "Winner and completed laps match session_result: Sao Paulo Race NORRIS 71 laps, Las Vegas Race VERSTAPPEN 50 laps.",
+    "Qualifying P1 and per-phase fastest Q1/Q2/Q3 times match session_result duration arrays for both weekends.",
+    "Las Vegas SC timeline matches race_control: deployed L19, lapped cars may overtake L24 (#30 only), SC in this lap L25, lights off L25; no explicit end record, and no end time or duration is inferred.",
+    "Overtake section still states API position exchanges are not confirmed on-track passes.",
+    "Pit map text still separates the teal reference line from actual car trajectories and PIT LAP from exact pit entry/exit times.",
+    "FastF1 section: results_only, 22 public results, detailed timing HTTP 401 shown as authentication pending, not as completed lap/telemetry comparison.",
+    "Qualifying replay: Q1/Q2/Q3 windows from SESSION STARTED records, phase participants only, laps counted only after completion (future incomplete laps excluded), deleted and pit-out laps excluded.",
+    "Gap replay text matches race_gaps.js: circle uses gap_to_leader, name labels use interval, records older than 10 s hidden."
+  ],
+  "changes": [
+    "race_events.py: label for 'LAPPED CARS MAY NOW OVERTAKE THE SAFETY CAR' changed from ambiguous '주회 뒤처진 차량 추월 허용' to '한 바퀴 이상 뒤진 차량의 세이프티카 추월 허용' (card colour now follows other SC cards).",
+    "race_events.py: 'YELLOW IN PIT LANE' records without a scope now show scope '피트레인' instead of '범위 미확인' (Sao Paulo L17). Match narrowed to that message type after Codex review.",
+    "race_events.py: SC/VSC notice explains SC vs VSC for beginners instead of the circular '가상 세이프티카 안내'.",
+    "race_gaps.py: canvas aria-label '가로 시간 간격' corrected to '원형 시간 간격' to match the circular view.",
+    "weekend_report.py: single-session pages (race-report, qualifying-report, archive entries) no longer claim to be a full-weekend report covering FP1-3/qualifying/race; heading shows the session label.",
+    "Tests added for pit-lane scope and single-session heading."
+  ],
+  "not_applied": [
+    {"suggestion": "Format raw ISO fetch timestamps (with microseconds) in FastF1/video/attachment captions", "reason": "Formatting only, not an accuracy defect; kept to minimal change."},
+    {"suggestion": "Rename '최종 삭제 확인 랩' in qualifying replay caption", "reason": "Wording correctly signals that deletions known at the end of the session are applied; not a confirmed defect."},
+    {"suggestion": "Show the Las Vegas reel credit only on the Las Vegas report", "reason": "Labelled as a layout reference with its verification limit; not a data claim."}
+  ],
+  "codex_review": {
+    "task_review": "Ran read-only (no --write). Findings: pit-lane match too broad (applied); lapped-car label, #30 scope and circular-gap text consistent with sources; archive h1 replacement unaffected; no spelling issues.",
+    "working_tree_review": "Not run: working tree includes regenerated multi-megabyte archive HTML; code diff was covered by the task review."
+  },
+  "validation": {
+    "related_tests": "python -m unittest test_race_events test_weekend_report test_race_gaps test_qualifying_replay test_fastf1_source test_beginner_notes test_archive: 38 tests OK.",
+    "pre_existing_failures": "test_race_starting_tyres (1), test_claude_report_review (1), test_report_rescue (8): cp949 decode and 'git init' config-parse errors; same 10 errors reproduced on clean HEAD worktree, unrelated to this change.",
+    "regenerated": "Both weekends' race, qualifying and weekend HTML plus reports/current-year.html and reports/index.html via tools/build_archive.py. Text diff confirmed only the intended wording changes; data, media, map geometry and schedule untouched."
+  },
+  "automation_path": {
+    "github": ".github/workflows/claude-report-review.yml runs review and rescue only when the repository secret CLAUDE_CODE_OAUTH_TOKEN is set; otherwise the step is skipped. Secret presence could not be checked locally (gh CLI not logged in).",
+    "local": "python tools/claude_report_review.py --local-login --output-dir <dir> uses the local Claude login; not run here to avoid a nested Claude CLI call."
+  }
+}

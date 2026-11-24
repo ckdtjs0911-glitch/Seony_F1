@@ -20,7 +20,7 @@ class RaceEventTests(unittest.TestCase):
             ({'message':'SAFETY CAR ENDED'},'세이프티카 종료'),
             ({'message':'VIRTUAL SAFETY CAR DEPLOYED'},'VSC 투입'),
             ({'message':'VIRTUAL SAFETY CAR ENDED'},'VSC 종료'),
-            ({'message':'LAPPED CARS MAY NOW OVERTAKE THE SAFETY CAR: 30'},'주회 뒤처진 차량 추월 허용'),
+            ({'message':'LAPPED CARS MAY NOW OVERTAKE THE SAFETY CAR: 30'},'한 바퀴 이상 뒤진 차량의 세이프티카 추월 허용'),
             ({"message": "RACE WILL RESUME AT 15:45"}, "재출발 예정"),
             ({"message": "RESUMPTION ORDER: 1, 2"}, "재출발 순서 안내"),
         ]:
@@ -63,6 +63,15 @@ class RaceEventTests(unittest.TestCase):
         self.assertIn('→',page)
         self.assertNotIn('DOUBLE YELLOW IN TRACK SECTOR 18',page)
         self.assertNotIn('<th>원문</th>',page)
+
+    def test_pit_lane_yellow_without_scope_names_pit_lane(self):
+        item=snapshot('Race')
+        item['data']['race_control']=[{'date':'2025-01-01T12:11:00+00:00','lap_number':17,'flag':None,'scope':None,'message':'YELLOW IN PIT LANE'}]
+        page=render_race_events(item,report.summarize(item))
+        self.assertIn('범위 · 피트레인',page)
+        self.assertNotIn('범위 미확인',page)
+        item['data']['race_control']=[{'date':'2025-01-01T12:11:00+00:00','lap_number':17,'scope':None,'message':'RACE WILL RESUME, PIT LANE OPEN AT 15:45'}]
+        self.assertNotIn('범위 · 피트레인',render_race_events(item,report.summarize(item)))
 
 
 if __name__ == "__main__":

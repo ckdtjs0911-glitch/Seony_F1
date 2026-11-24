@@ -252,6 +252,8 @@ class ReportTests(unittest.TestCase):
             self.assertNotIn("@@", text)
             self.assertIn('id="chart-time"', text)
             self.assertNotIn("REPORT_ROWS", text)
+            self.assertIn("퀄리파잉 단일 세션 보고서", text)
+            self.assertNotIn("프랙티스 1·2·3 + 퀄리파잉", text)
 
     def test_failed_refresh_preserves_last_success(self):
         item = snapshot()
@@ -303,6 +305,7 @@ class ReportTests(unittest.TestCase):
             report.render(report.load_offline(root), root / "report.html")
             text = (root / "report.html").read_bytes().decode("utf-8")
             self.assertIn("Sergio Pérez — 세르히오", text)
+            self.assertIn("주말 전체 선수 보고서", text)
 
     def test_null_race_control_message_is_ignored(self):
         item = snapshot()
