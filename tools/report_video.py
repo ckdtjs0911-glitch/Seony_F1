@@ -322,6 +322,19 @@ def main():
     paths = [args.snapshot] if args.snapshot else sorted(args.root.glob("weekend-*/data/*.json"))
     for path in paths:
         snapshot = json.loads(path.read_text(encoding="utf-8"))
+        if snapshot.get('session',{}).get('session_name')=='Qualifying':
+            if not args.snapshot and datetime.now(timezone.utc).timestamp()-epoch(snapshot['fetched_at'])>1800:
+                continue
+            try:
+                from qualifying_replay import collect_qualifying
+                changed=args.offline or collect_qualifying(snapshot,path.parent.parent/'media',weekend_report.fetch)
+                if changed:
+                    weekend_report.render([snapshot],path.parent.parent/'qualifying-report.html')
+                    weekend_report.render(weekend_report.load_offline(path.parent.parent),path.parent.parent/'weekend-report.html')
+            except Exception as exc:
+                if args.snapshot:raise
+                print(f'Qualifying replay unavailable: {type(exc).__name__}: {exc}')
+            continue
         if snapshot.get("session", {}).get("session_name") != "Race" or not snapshot.get("data", {}).get("session_result"):
             continue
         # Automatic runs only process snapshots freshly collected in this run.

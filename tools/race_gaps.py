@@ -118,7 +118,7 @@ def render_gaps(snapshot, directory):
     script=(ROOT/'tools/race_gaps.js').read_text(encoding='utf-8')
     payload=base64.b64encode(path.read_bytes()).decode()
     return '''<section id="race-gap-replay"><h3>시간별 레이스 위치 · 앞차와 간격</h3><p>왼쪽은 실제 위치 기록을 사용한 근사 서킷 지도, 오른쪽은 선두와의 시간차를 원형으로 펼친 보기입니다. 이름 옆 수치는 앞차와의 간격이며 단위는 s(초)입니다.</p>
-<p><button type="button" id="gap-play">일시정지</button> <input id="gap-seek" type="range" min="0" max="1000" value="0" aria-label="레이스 시간" style="width:50%"> <select id="gap-rate" aria-label="레이스 재생 속도"><option value="1">1배속</option><option value="4">4배속</option><option value="8">8배속</option><option value="16">16배속</option><option value="32" selected>32배속</option></select> <span id="gap-clock"></span></p>
+<p><button type="button" id="gap-play">일시정지</button> <input id="gap-seek" type="range" min="0" max="1000" value="0" aria-label="레이스 시간" style="width:50%"> <select id="gap-rate" aria-label="레이스 재생 속도"><option value="1">1배속</option><option value="4" selected>4배속</option><option value="8">8배속</option><option value="16">16배속</option><option value="32">32배속</option></select> <span id="gap-clock"></span></p>
 <p id="gap-status" role="status">위치 데이터를 준비하고 있습니다.</p><canvas id="gap-canvas" width="1280" height="600" style="width:100%;max-width:1280px" aria-label="시간별 서킷 위치와 가로 시간 간격"></canvas>
 <p>간격은 OpenF1 intervals의 최근 10초 이내 기록만 표시합니다. 위치는 0.5초 간격으로 저장하며 2초 넘는 공백은 숨깁니다. 랩 차이는 초로 바꾸지 않고 +1 LAP처럼 표시합니다. 점의 중간 이동은 표시용 보간입니다.</p>
 <p>노란 점선 PIT LANE은 피트 랩의 실제 위치 기록에서 본선과 분리된 구간을 추린 추정 경로입니다. 분리 경로가 없으면 그리지 않습니다. ‘PIT LAP’은 피트 기록이 있는 랩을 뜻하며 정확한 피트 진입·출구 시각은 아닙니다.</p>

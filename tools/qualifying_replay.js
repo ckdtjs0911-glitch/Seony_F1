@@ -1,0 +1,30 @@
+(()=>{const root=document.currentScript.closest('.qualifying-replay');(async()=>{try{
+ const $=s=>root.querySelector(s),bytes=Uint8Array.from(atob($('.q-payload').textContent),c=>c.charCodeAt(0));
+ const data=JSON.parse(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+ const c=$('.q-canvas').getContext('2d'),canvas=c.canvas,track=data.track||[],xs=track.map(p=>p[0]),ys=track.map(p=>p[1]);
+ const minx=Math.min(...xs),miny=Math.min(...ys),scale=Math.min(470/(Math.max(...xs)-minx||1),450/(Math.max(...ys)-miny||1)),point=r=>[35+(r[0]-minx)*scale,110+(r[1]-miny)*scale];
+ let phase,start,end,now,playing=true,last=0;
+ const text=(s,x,y,color='#edf4fc',size=18)=>{c.fillStyle=color;c.font=`${size}px system-ui`;c.fillText(s,x,y);};
+ for(const option of $('.q-phase').options)option.disabled=!data.phases.some(p=>p[0]===Number(option.value));
+ function draw(){
+  c.fillStyle='#0b1321';c.fillRect(0,0,1280,680);text(`Q${phase} · 서킷 위치`,30,40,'#6deac9',25);text(`Q${phase} · 현재까지 유효 최고 랩`,560,40,'#6deac9',25);
+  if(track.length){c.beginPath();track.forEach((r,i)=>{const p=point(r);i?c.lineTo(...p):c.moveTo(...p);});c.closePath();c.strokeStyle='#4c5b70';c.lineWidth=8;c.stroke();}
+  let count=0;
+  for(const d of data.drivers){if(data.participants&&!data.participants[String(phase)]?.includes(d.number))continue;const rows=d.locations;let lo=0,hi=rows.length;while(lo<hi){const m=(lo+hi)>>1;if(rows[m][0]<=now*1000)lo=m+1;else hi=m;}
+   const a=rows[lo-1],b=rows[lo];if(!a||now*1000-a[0]>2000||!track.length)continue;
+   let r=a.slice(1);if(b&&b[0]-a[0]<=2000){const f=(now*1000-a[0])/(b[0]-a[0]);r=r.map((v,i)=>v+(b[i+1]-v)*f);}
+   const [x,y]=point(r);c.beginPath();c.arc(x,y,5,0,Math.PI*2);c.fillStyle=d.color;c.fill();text(d.name,x+7,y-7,d.color,12);count++;
+  }
+  const best=new Map();for(const r of data.laps){if(r[1]!==phase||r[2]+r[3]>now)continue;const prev=best.get(r[0]);if(!prev||r[3]<prev[3])best.set(r[0],r);}
+  const ranks=[...best.values()].sort((a,b)=>a[3]-b[3]);
+  text('순위   선수          최고 랩                 1위와 차이',560,86,'#b7c9df',16);
+  ranks.forEach((r,i)=>{const d=data.drivers.find(d=>d.number===r[0]),y=120+i*23;const min=Math.floor(r[3]/60),sec=(r[3]%60).toFixed(3).padStart(6,'0');text(`P${i+1}`,560,y);text(d?.name||String(r[0]),620,y,d?.color);text(`${min}:${sec}`,755,y);text(i?`+${(r[3]-ranks[0][3]).toFixed(3)} s`:'기준 기록',950,y,'#b7c9df');});
+  if(!ranks.length)text('아직 이 단계에서 완료한 유효 랩이 없습니다.',560,130,'#b7c9df');
+  $('.q-status').textContent=`Q${phase} · 위치 표시 ${count}명 · 유효 랩 기록 ${ranks.length}명`;
+  $('.q-clock').textContent=new Date((data.start+now)*1000).toISOString().slice(11,19)+' UTC';$('.q-seek').value=Math.round((now-start)/(end-start)*1000);canvas.dataset.phase=phase;canvas.dataset.time=now;
+ }
+ function choose(){phase=Number($('.q-phase').value);const window=data.phases.find(p=>p[0]===phase);if(!window)return;[ ,start,end]=window;now=start;playing=true;$('.q-play').textContent='일시정지';draw();}
+ $('.q-phase').onchange=choose;$('.q-seek').oninput=()=>{now=start+Number($('.q-seek').value)/1000*(end-start);draw();};$('.q-play').onclick=()=>{playing=!playing;$('.q-play').textContent=playing?'일시정지':'재생';};
+ function tick(t){if(!root.isConnected)return;const dt=Math.min((t-last)/1000,.1);last=t;if(playing){now+=dt*Number($('.q-rate').value);if(now>end)now=start;draw();}requestAnimationFrame(tick);}
+ $('.q-phase').value=String(data.phases[0][0]);choose();requestAnimationFrame(tick);
+}catch(e){root.querySelector('.q-status').textContent='퀄리파잉 위치 자료를 불러오지 못했습니다.';console.error(e);}})();})();

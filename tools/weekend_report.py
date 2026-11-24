@@ -17,6 +17,7 @@ from race_attachments import render_race_attachments
 from race_pitstops import render_pitstops
 from race_overtakes import render_overtakes
 from report_video import render_section as render_video_section
+from qualifying_replay import render_qualifying
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from openf1.util import openf1_client  # noqa: E402
@@ -546,6 +547,7 @@ def render(snapshots, output, now=None, starting_tyre_summaries=None):
         )
         body += render_race_events(item, rows)
         body += render_video_section(item)
+        body += render_qualifying(item)
         if name == "Race":
             overtake_appendix = render_overtakes(item)
             race_appendix = render_pitstops(item, rows) + render_race_attachments(
