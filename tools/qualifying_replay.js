@@ -1,14 +1,18 @@
 (()=>{const root=document.currentScript.closest('.qualifying-replay');(async()=>{try{
  const $=s=>root.querySelector(s),bytes=Uint8Array.from(atob($('.q-payload').textContent),c=>c.charCodeAt(0));
  const data=JSON.parse(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
- const c=$('.q-canvas').getContext('2d'),canvas=c.canvas,track=data.track||[],xs=track.map(p=>p[0]),ys=track.map(p=>p[1]);
- const minx=Math.min(...xs),miny=Math.min(...ys),scale=Math.min(470/(Math.max(...xs)-minx||1),450/(Math.max(...ys)-miny||1)),point=r=>[35+(r[0]-minx)*scale,110+(r[1]-miny)*scale];
+ const c=$('.q-canvas').getContext('2d'),canvas=c.canvas,track=data.track||[],rawX=track.map(p=>p[0]),rawY=track.map(p=>p[1]);
+ const rotate=Math.max(...rawY)-Math.min(...rawY)>Math.max(...rawX)-Math.min(...rawX),orient=r=>rotate?[r[1],-r[0]]:r;
+ const extent=track.map(orient),xs=extent.map(p=>p[0]),ys=extent.map(p=>p[1]),minx=Math.min(...xs),miny=Math.min(...ys),width=Math.max(...xs)-minx||1,height=Math.max(...ys)-miny||1;
+ const scale=Math.min(470/width,450/height),point=r=>{const p=orient(r);return [35+(470-width*scale)/2+(p[0]-minx)*scale,110+(450-height*scale)/2+(p[1]-miny)*scale];};
  let phase,start,end,now,playing=true,last=0;
  const text=(s,x,y,color='#edf4fc',size=18)=>{c.fillStyle=color;c.font=`${size}px system-ui`;c.fillText(s,x,y);};
  for(const option of $('.q-phase').options)option.disabled=!data.phases.some(p=>p[0]===Number(option.value));
  function draw(){
   c.fillStyle='#0b1321';c.fillRect(0,0,1280,680);text(`Q${phase} · 서킷 위치`,30,40,'#6deac9',25);text(`Q${phase} · 현재까지 유효 최고 랩`,560,40,'#6deac9',25);
   if(track.length){c.beginPath();track.forEach((r,i)=>{const p=point(r);i?c.lineTo(...p):c.moveTo(...p);});c.closePath();c.strokeStyle='#4c5b70';c.lineWidth=8;c.stroke();}
+  for(const path of data.pit_reference?.segments||[]){c.beginPath();path.forEach((r,i)=>{const p=point(r);i?c.lineTo(...p):c.moveTo(...p);});c.strokeStyle='#0b1321';c.lineWidth=7;c.stroke();c.strokeStyle='#38dfc8';c.lineWidth=3;c.stroke();}
+  if(data.pit_reference)text('PIT LANE · 청록색 참고선',30,600,'#38dfc8',14);
   let count=0;
   for(const d of data.drivers){if(data.participants&&!data.participants[String(phase)]?.includes(d.number))continue;const rows=d.locations;let lo=0,hi=rows.length;while(lo<hi){const m=(lo+hi)>>1;if(rows[m][0]<=now*1000)lo=m+1;else hi=m;}
    const a=rows[lo-1],b=rows[lo];if(!a||now*1000-a[0]>2000||!track.length)continue;

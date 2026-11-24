@@ -2,9 +2,10 @@
  const $=id=>document.getElementById(id),bytes=Uint8Array.from(atob($('gap-payload').textContent),c=>c.charCodeAt(0));
  const data=JSON.parse(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
  const canvas=$('gap-canvas'),c=canvas.getContext('2d'),seek=$('gap-seek');let now=0,playing=true,last=0;
- const track=data.track||[],xs=track.map(p=>p[0]),ys=track.map(p=>p[1]);
- const minx=Math.min(...xs),miny=Math.min(...ys),scale=Math.min(450/(Math.max(...xs)-minx||1),420/(Math.max(...ys)-miny||1));
- const point=r=>[40+(r[0]-minx)*scale,110+(r[1]-miny)*scale];
+ const track=data.track||[],rawX=track.map(p=>p[0]),rawY=track.map(p=>p[1]);
+ const rotate=Math.max(...rawY)-Math.min(...rawY)>Math.max(...rawX)-Math.min(...rawX),orient=r=>rotate?[r[1],-r[0]]:r;
+ const extent=track.map(orient),xs=extent.map(p=>p[0]),ys=extent.map(p=>p[1]),minx=Math.min(...xs),miny=Math.min(...ys),width=Math.max(...xs)-minx||1,height=Math.max(...ys)-miny||1;
+ const scale=Math.min(450/width,420/height),point=r=>{const p=orient(r);return [40+(450-width*scale)/2+(p[0]-minx)*scale,110+(420-height*scale)/2+(p[1]-miny)*scale];};
  const at=(rows,t,age=Infinity)=>{let l=0,h=rows.length;while(l<h){const m=(l+h)>>1;if(rows[m][0]<=t)l=m+1;else h=m;}const r=rows[l-1];return r&&t-r[0]<=age?{r,next:rows[l]}:null;};
  const label=(s,x,y,color='#edf4fc',size=17)=>{c.fillStyle=color;c.font=`${size}px system-ui`;c.fillText(s,x,y);};
  const gap=(r,leader)=>leader?'선두':typeof r?.[1]==='number'&&r[1]>=0?`+${r[1].toFixed(3)} s`:typeof r?.[1]==='string'?r[1]:'—';
@@ -12,8 +13,9 @@
  function draw(){
   c.fillStyle='#0b1321';c.fillRect(0,0,1280,600);label('서킷 위치 · 시간별 재생',30,38,'#6deac9',24);label('원형 시간 간격 · 앞차와 간격(s)',540,38,'#6deac9',24);
   if(track.length){c.beginPath();track.forEach((r,i)=>{const p=point(r);i?c.lineTo(...p):c.moveTo(...p);});c.closePath();c.strokeStyle='#4c5b70';c.lineWidth=9;c.stroke();}
-  for(const segment of data.pit_tracks||[]){c.beginPath();segment.forEach((r,i)=>{const p=point(r);i?c.lineTo(...p):c.moveTo(...p);});c.strokeStyle='#ffd65c';c.lineWidth=4;c.setLineDash([6,4]);c.stroke();c.setLineDash([]);}
-  label((data.pit_tracks||[]).length?'PIT LANE · 노란 점선 (위치 기반 추정)':'PIT LANE · 분리 경로 미확인',30,575,'#ffd65c',14);
+  const pitPaths=data.pit_reference?.segments||data.pit_tracks||[];
+  for(const segment of pitPaths){c.beginPath();segment.forEach((r,i)=>{const p=point(r);i?c.lineTo(...p):c.moveTo(...p);});c.strokeStyle='#0b1321';c.lineWidth=7;c.stroke();c.strokeStyle='#38dfc8';c.lineWidth=3;c.setLineDash(data.pit_reference?[]:[6,4]);c.stroke();c.setLineDash([]);}
+  label(pitPaths.length?'PIT LANE · 청록색 참고선':'PIT LANE · 분리 경로 미확인',30,575,'#38dfc8',14);
   const active=[];
   for(const d of data.drivers){
    const pos=at(d.positions,now*1000)?.r[1],g=at(d.gaps,now*1000,10000)?.r,loc=at(d.locations,now*1000,2000);

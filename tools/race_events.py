@@ -104,9 +104,9 @@ def render_race_events(snapshot, rows):
         body+='</aside>'
     if events:
         body += """<style>
-.event-flow{display:flex;align-items:stretch;gap:12px;overflow-x:auto;padding:10px 0 18px;list-style:none;margin:0}
-.event-flow li{display:flex;align-items:center;gap:12px}
-.event-card{min-width:210px;padding:16px 20px;background:#152339;border:1px solid #35465e;border-left:4px solid var(--flag);border-radius:12px}
+.event-flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:14px 12px;padding:10px 0 18px;list-style:none;margin:0;max-width:100%}
+.event-flow li{display:flex;align-items:center;gap:12px;flex:0 1 286px;min-width:0;max-width:100%}
+.event-card{box-sizing:border-box;min-width:0;flex:1;padding:16px 20px;background:#152339;border:1px solid #35465e;border-left:4px solid var(--flag);border-radius:12px;overflow-wrap:anywhere}
 .event-card strong{display:block;color:var(--flag);margin:8px 0;font-size:17px}.event-card p{margin:4px 0}
 .event-card time{color:#a9bed7;font-size:13px}.event-arrow{color:#60c6f5;font-size:26px}.event-lap{margin-top:18px;font-size:16px}
 .event-flow:focus{outline:2px solid #60c6f5}</style>

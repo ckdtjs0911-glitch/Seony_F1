@@ -107,6 +107,8 @@ def enrich_pits(snapshot, value, target):
     value['pit_tracks']=segments
     value['pit_version']=1
     value['pit_signature']=signature
+    from circuit_geometry import enrich_mapped_pit
+    enrich_mapped_pit(snapshot,value)
     target.write_bytes(gzip.compress(json.dumps(value,separators=(',',':')).encode(),mtime=0))
     return True
 
@@ -121,5 +123,6 @@ def render_gaps(snapshot, directory):
 <p><button type="button" id="gap-play">일시정지</button> <input id="gap-seek" type="range" min="0" max="1000" value="0" aria-label="레이스 시간" style="width:50%"> <select id="gap-rate" aria-label="레이스 재생 속도"><option value="1">1배속</option><option value="4" selected>4배속</option><option value="8">8배속</option><option value="16">16배속</option><option value="32">32배속</option></select> <span id="gap-clock"></span></p>
 <p id="gap-status" role="status">위치 데이터를 준비하고 있습니다.</p><canvas id="gap-canvas" width="1280" height="600" style="width:100%;max-width:1280px" aria-label="시간별 서킷 위치와 가로 시간 간격"></canvas>
 <p>간격은 OpenF1 intervals의 최근 10초 이내 기록만 표시합니다. 위치는 0.5초 간격으로 저장하며 2초 넘는 공백은 숨깁니다. 랩 차이는 초로 바꾸지 않고 +1 LAP처럼 표시합니다. 점의 중간 이동은 표시용 보간입니다.</p>
-<p>노란 점선 PIT LANE은 피트 랩의 실제 위치 기록에서 본선과 분리된 구간을 추린 추정 경로입니다. 분리 경로가 없으면 그리지 않습니다. ‘PIT LAP’은 피트 기록이 있는 랩을 뜻하며 정확한 피트 진입·출구 시각은 아닙니다.</p>
+<p>청록색 PIT LANE은 확인된 지도 경로를 세션 좌표에 근사 정합한 참고선입니다. 차량의 실제 피트 이동 궤적과는 구분합니다. ‘PIT LAP’은 피트 기록이 있는 랩이며 정확한 피트 진입·출구 시각은 아닙니다. 지도 경로가 없으면 실제 관측에서 분리된 추정 경로만 표시합니다.</p>
+<p>피트 지도: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors · ODbL 1.0</a> · 정합 기준: <a href="https://github.com/bacinger/f1-circuits">bacinger/f1-circuits · MIT</a></p>
 <p>구성 참고: <a href="https://f1cosmos.com/ko/dashboard/replay/11326">F1 COSMOS 리플레이</a> · 제공된 화면을 참고했으며 사이트 리플레이 데이터는 직접 검증하지 못했습니다.</p></section><script id="gap-payload" type="application/octet-stream">'''+payload+'</script><script>'+script+'</script>'
