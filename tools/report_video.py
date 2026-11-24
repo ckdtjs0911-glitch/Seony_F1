@@ -9,7 +9,7 @@ import math
 from datetime import datetime, timezone
 from pathlib import Path
 
-VERSION = 5
+VERSION = 6
 ROOT = Path(__file__).resolve().parents[1]
 REFERENCE = "https://www.instagram.com/reel/DgCU86yhjUz/"
 
@@ -262,7 +262,7 @@ def render_videos(snapshot, source, directory):
             for label_y, y, driver, x in adjusted:
                 label_y = label_positions.get(driver, label_y) * .7 + label_y * .3
                 label_positions[driver] = label_y
-                label_x = min(960, x + 12)
+                label_x = 970
                 draw.line((x+4, y, label_x, label_y), fill=colors[driver], width=1)
                 draw.rounded_rectangle((label_x, label_y-10, label_x+285, label_y+10), radius=4, fill="#152339")
                 name = names[driver].get('last_name', str(driver)).title()

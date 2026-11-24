@@ -34,7 +34,7 @@ def collect_gaps(snapshot, directory, fetch):
     target = directory / f'{key}-track.json.gz'
     old = json.loads(gzip.decompress(target.read_bytes())) if target.exists() else {}
     if old.get('complete'):
-        return False
+        return enrich_pits(snapshot, old, target)
     laps = [x for x in snapshot['data']['laps'] if x.get('date_start') and x.get('lap_duration')]
     start = min(epoch(x['date_start']) for x in laps)
     end = max(epoch(x['date_start']) + x['lap_duration'] for x in laps)
@@ -68,6 +68,46 @@ def collect_gaps(snapshot, directory, fetch):
     value['track']=[r[1:] for r in driver.get('locations',[]) if a<=r[0]<=b]
     value['complete']=True
     target.write_bytes(gzip.compress(json.dumps(value,separators=(',',':')).encode(),mtime=0))
+    enrich_pits(snapshot, value, target)
+    return True
+
+
+def enrich_pits(snapshot, value, target):
+    """Annotate recorded pit laps; a separate lane is inferred only from observed deviations."""
+    import math
+    import statistics
+    import hashlib
+    from report_video import epoch
+    signature=hashlib.sha256(json.dumps({'pit':snapshot['data'].get('pit',[]),'laps':snapshot['data']['laps'],'track':value.get('track',[])},sort_keys=True).encode()).hexdigest()
+    if value.get('pit_signature')==signature:
+        return False
+    track=value.get('track',[])
+    spacing=[math.dist(a,b) for a,b in zip(track,track[1:]) if math.dist(a,b)>0]
+    threshold=max(20,statistics.median(spacing)*1.2) if spacing else math.inf
+    segments=[]
+    for driver in value['drivers']:
+        pit_laps={p.get('lap_number') for p in snapshot['data'].get('pit',[]) if p['driver_number']==driver['number']}
+        spans=[]
+        for lap in snapshot['data']['laps']:
+            if lap['driver_number']==driver['number'] and lap.get('lap_number') in pit_laps and lap.get('date_start') and lap.get('lap_duration'):
+                start=round((epoch(lap['date_start'])-value['start'])*1000)
+                spans.append([start,start+lap['lap_duration']*1000])
+        driver['pit_laps']=spans
+        for start,end in spans:
+            group=[]
+            for row in driver.get('locations',[]):
+                if not start<=row[0]<=end:continue
+                distance=min((math.dist(row[1:],p) for p in track),default=0)
+                if distance>threshold:
+                    group.append(row[1:])
+                else:
+                    if len(group)>=5:segments.append(group)
+                    group=[]
+            if len(group)>=5:segments.append(group)
+    value['pit_tracks']=segments
+    value['pit_version']=1
+    value['pit_signature']=signature
+    target.write_bytes(gzip.compress(json.dumps(value,separators=(',',':')).encode(),mtime=0))
     return True
 
 
@@ -77,8 +117,9 @@ def render_gaps(snapshot, directory):
     if not path.exists():return ''
     script=(ROOT/'tools/race_gaps.js').read_text(encoding='utf-8')
     payload=base64.b64encode(path.read_bytes()).decode()
-    return '''<section id="race-gap-replay"><h3>시간별 레이스 위치 · 앞차와 간격</h3><p>왼쪽은 실제 위치 기록을 사용한 근사 서킷 지도, 오른쪽은 선두와의 시간차를 가로로 펼친 보기입니다. 이름 옆 수치는 앞차와의 간격이며 단위는 s(초)입니다.</p>
-<p><button type="button" id="gap-play">일시정지</button> <input id="gap-seek" type="range" min="0" max="1000" value="0" aria-label="레이스 시간" style="width:50%"> <select id="gap-rate" aria-label="레이스 재생 속도"><option value="1">1배속</option><option value="8">8배속</option><option value="32" selected>32배속</option><option value="128">128배속</option></select> <span id="gap-clock"></span></p>
+    return '''<section id="race-gap-replay"><h3>시간별 레이스 위치 · 앞차와 간격</h3><p>왼쪽은 실제 위치 기록을 사용한 근사 서킷 지도, 오른쪽은 선두와의 시간차를 원형으로 펼친 보기입니다. 이름 옆 수치는 앞차와의 간격이며 단위는 s(초)입니다.</p>
+<p><button type="button" id="gap-play">일시정지</button> <input id="gap-seek" type="range" min="0" max="1000" value="0" aria-label="레이스 시간" style="width:50%"> <select id="gap-rate" aria-label="레이스 재생 속도"><option value="1">1배속</option><option value="4">4배속</option><option value="8">8배속</option><option value="16">16배속</option><option value="32" selected>32배속</option></select> <span id="gap-clock"></span></p>
 <p id="gap-status" role="status">위치 데이터를 준비하고 있습니다.</p><canvas id="gap-canvas" width="1280" height="600" style="width:100%;max-width:1280px" aria-label="시간별 서킷 위치와 가로 시간 간격"></canvas>
 <p>간격은 OpenF1 intervals의 최근 10초 이내 기록만 표시합니다. 위치는 0.5초 간격으로 저장하며 2초 넘는 공백은 숨깁니다. 랩 차이는 초로 바꾸지 않고 +1 LAP처럼 표시합니다. 점의 중간 이동은 표시용 보간입니다.</p>
+<p>노란 점선 PIT LANE은 피트 랩의 실제 위치 기록에서 본선과 분리된 구간을 추린 추정 경로입니다. 분리 경로가 없으면 그리지 않습니다. ‘PIT LAP’은 피트 기록이 있는 랩을 뜻하며 정확한 피트 진입·출구 시각은 아닙니다.</p>
 <p>구성 참고: <a href="https://f1cosmos.com/ko/dashboard/replay/11326">F1 COSMOS 리플레이</a> · 제공된 화면을 참고했으며 사이트 리플레이 데이터는 직접 검증하지 못했습니다.</p></section><script id="gap-payload" type="application/octet-stream">'''+payload+'</script><script>'+script+'</script>'

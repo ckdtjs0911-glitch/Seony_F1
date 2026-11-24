@@ -76,7 +76,7 @@ def render_player(snapshot, directory):
     script = (ROOT / 'tools' / 'compare_player.js').read_text(encoding='utf-8')
     return '''<section id="driver-replay"><h3>두 선수 선택 · 차량 데이터 비교</h3>
 <p>선수 두 명과 랩을 고르면 같은 UTC 시각의 속도·가속·브레이크 사용을 자동 재생합니다. 랩 시작점을 서로 맞춘 비교가 아닙니다.</p>
-<div style="display:flex;gap:16px;flex-wrap:wrap"><label>첫 번째 선수 <select id="replay-a" aria-label="첫 번째 선수"></select></label><label>두 번째 선수 <select id="replay-b" aria-label="두 번째 선수"></select></label><label>비교 랩 <select id="replay-lap" aria-label="비교 랩"></select></label><label>재생 속도 <select id="replay-rate"><option value="1">1배속</option><option value="3" selected>3배속</option><option value="8">8배속</option></select></label></div>
+<div style="display:flex;gap:16px;flex-wrap:wrap"><label>첫 번째 선수 <select id="replay-a" aria-label="첫 번째 선수"></select></label><label>두 번째 선수 <select id="replay-b" aria-label="두 번째 선수"></select></label><label>비교 랩 <select id="replay-lap" aria-label="비교 랩"></select></label><label>재생 속도 <select id="replay-rate"><option value="1">1배속</option><option value="4" selected>4배속</option><option value="8">8배속</option><option value="16">16배속</option><option value="32">32배속</option></select></label></div>
 <p><button id="replay-play" type="button">일시정지</button> <input id="replay-seek" aria-label="재생 위치" type="range" min="0" max="1000" value="0" style="width:55%"> <span id="replay-clock"></span></p>
 <p id="replay-status" role="status">차량 데이터를 준비하고 있습니다.</p>
 <canvas id="replay-canvas" width="1280" height="720" style="width:100%;max-width:1280px;background:#0b1321" aria-label="선택한 두 선수의 속도 비교 재생"></canvas>

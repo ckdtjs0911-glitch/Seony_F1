@@ -1,0 +1,20 @@
+{
+  "version": 6,
+  "session_key": 11412,
+  "signature": "d8ad0d977b7d96ab768a69db0685b995741368d823431a4af49d78f373d21305",
+  "source_file": "11412-video-data.json",
+  "source": "https://openf1.org/docs/",
+  "reference": {
+    "url": "https://www.instagram.com/reel/DgCU86yhjUz/",
+    "verified": "Public caption only; reel frames were inaccessible",
+    "claim": "46 of 50 laps led; 30+ mid-lap lead changes (not independently confirmed)"
+  },
+  "fetched_at": "2026-11-24T16:47:36.175736+00:00",
+  "videos": [
+    {
+      "file": "11412-lap-chart.mp4",
+      "title": "전체 드라이버 · 레이스 순위 흐름",
+      "description": "이름 옆에 같은 시각의 앞차와 간격을 s(초)로 표시합니다. 랩 차이는 +1 LAP처럼 보존하고, 최근 10초 이내 기록이 없으면 —로 표시합니다. 순위 선은 우승자 각 랩 완료 시각을 기준으로 하며 중간 이동은 표시용입니다. 실제 추월 횟수가 아닙니다."
+    }
+  ]
+}
