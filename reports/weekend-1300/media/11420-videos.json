@@ -1,7 +1,7 @@
 {
-  "version": 6,
+  "version": 7,
   "session_key": 11420,
-  "signature": "ca4cd941c51f4652c303a2ad5566f68866d36fc67bad8caa10e9943d66f4033c",
+  "signature": "318a54bddafaba71cde48fec32b58594c00a8204f17e83d804a988c7a2f8c4c5",
   "source_file": "11420-video-data.json",
   "source": "https://openf1.org/docs/",
   "reference": {

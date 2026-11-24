@@ -9,7 +9,7 @@ import math
 from datetime import datetime, timezone
 from pathlib import Path
 
-VERSION = 6
+VERSION = 7
 ROOT = Path(__file__).resolve().parents[1]
 REFERENCE = "https://www.instagram.com/reel/DgCU86yhjUz/"
 
@@ -264,7 +264,6 @@ def render_videos(snapshot, source, directory):
                 label_positions[driver] = label_y
                 label_x = 970
                 draw.line((x+4, y, label_x, label_y), fill=colors[driver], width=1)
-                draw.rounded_rectangle((label_x, label_y-10, label_x+285, label_y+10), radius=4, fill="#152339")
                 name = names[driver].get('last_name', str(driver)).title()
                 from race_gaps import gap_text
                 index=bisect.bisect_right(gap_times.get(driver,[]),clock)-1
@@ -306,7 +305,8 @@ def render_section(snapshot, media_root=None):
         if not asset.exists():
             continue
         uri = "data:video/mp4;base64," + base64.b64encode(asset.read_bytes()).decode()
-        cards.append(f'<h3>{html.escape(video["title"])}</h3><p>{html.escape(video["description"])}</p><video controls autoplay muted loop playsinline preload="metadata" style="width:100%;max-width:1280px;background:#0b1321" src="{uri}"></video><p><a download="{html.escape(asset.name)}" href="{uri}">MP4 영상 다운로드</a></p>')
+        rates = ''.join(f'<option value="{r}"{" selected" if r == "1" else ""}>{r}배속</option>' for r in ['0.25','0.5','0.75','1','1.25','1.5','1.75','2'])
+        cards.append(f'<h3>{html.escape(video["title"])}</h3><p>{html.escape(video["description"])}</p><p><label>영상 재생 속도 <select id="rank-video-rate" aria-label="순위 흐름 영상 재생 속도">{rates}</select></label></p><video id="rank-flow-video" controls autoplay muted loop playsinline preload="metadata" style="width:100%;max-width:1280px;background:#0b1321" src="{uri}"></video><script>(()=>{{const rate=document.getElementById("rank-video-rate"),video=document.getElementById("rank-flow-video");rate.addEventListener("change",()=>{{video.playbackRate=Number(rate.value);}});}})();</script><p><a download="{html.escape(asset.name)}" href="{uri}">MP4 영상 다운로드</a></p>')
     if not cards:
         return ""
     return '<section id="data-videos"><h2>영상으로 보는 레이스</h2><p>실제 수집한 OpenF1 데이터로 만든 그래픽 영상입니다. 중계 장면이나 추정 제동 압력은 포함하지 않습니다.</p>' + gap_player + "".join(cards) + player + f'<p>출처: <a href="https://openf1.org/docs/">OpenF1 car_data · position · intervals · location · laps</a> · 수집 {html.escape(value["fetched_at"])}<br>구성 참고: <a href="{REFERENCE}">라스베가스 랩 차트 릴스</a> (공개 설명만 확인, 영상 화면 미확인).</p></section>'
