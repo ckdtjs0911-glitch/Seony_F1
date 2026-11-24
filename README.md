@@ -1,5 +1,21 @@
 # OpenF1 API
 
+## 보고서 보조 참고 자료: Fast-F1
+
+[theOehrly/Fast-F1](https://github.com/theOehrly/Fast-F1) 소스를
+`vendor/Fast-F1` Git submodule로 연결했습니다. 원본의 문서·예제·MIT 라이선스를
+유지하며, 랩·섹터·타이어·텔레메트리 분석을 위한 보조 자료로 참고합니다.
+실제 데이터 사용 기준은 `AGENTS.md`의 보고서 참고 자료 규칙을 따릅니다.
+이 연결만으로 자동 수집이 실행되거나 기존 보고서 데이터가 바뀌지는 않습니다.
+
+소스를 함께 내려받으려면:
+
+```bash
+git clone --recurse-submodules https://github.com/ckdtjs0911-glitch/Seony_F1.git
+```
+
+기존 작업 폴더에서는 `git submodule update --init --recursive`로 준비할 수 있습니다.
+
 ## Seony_F1 주말 보고서 자동화
 
 **프랙티스 1·2·3 + 퀄리파잉 + 레이스 + 스프린트 세션**, 모든 선수의 결과와 랩·타이어 데이터를

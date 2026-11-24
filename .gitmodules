@@ -1,0 +1,3 @@
+[submodule "vendor/Fast-F1"]
+	path = vendor/Fast-F1
+	url = https://github.com/theOehrly/Fast-F1.git
