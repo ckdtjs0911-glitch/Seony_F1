@@ -39,7 +39,7 @@ class ArchiveTests(unittest.TestCase):
                 entries[0]["attachment_assets"], entries[1]["attachment_assets"]
             )
 
-    def test_annual_report_contains_only_current_year_with_identical_data(self):
+    def test_archive_updates_without_rewriting_annual_report(self):
         current_year = datetime.now(timezone.utc).year
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -49,21 +49,17 @@ class ArchiveTests(unittest.TestCase):
                 report.save_json(
                     root / f"weekend-{year}" / "data" / f"{year}.json", item
                 )
+            annual = root / "current-year.html"
+            original = b"Existing season report"
+            annual.write_bytes(original)
             build_archive.build(root)
-
-            def entries(name):
-                text = (root / name).read_text(encoding="utf-8")
-                return json.loads(
-                    text.split("const entries=", 1)[1].split(";const year=", 1)[0]
-                )
-
-            full = entries("index.html")
-            annual = entries("current-year.html")
-            self.assertEqual(len(full), 2)
-            self.assertEqual(
-                annual, [entry for entry in full if entry["year"] == current_year]
+            page = (root / "index.html").read_text(encoding="utf-8")
+            entries = json.loads(
+                page.split("const entries=", 1)[1].split(";const year=", 1)[0]
             )
-            self.assertTrue(annual[0]["payload"])
+            self.assertEqual({entry["year"] for entry in entries}, {current_year - 1, current_year})
+            self.assertTrue(all(entry["payload"] for entry in entries))
+            self.assertEqual(annual.read_bytes(), original)
 
     def test_accumulation_and_catalog_missing_session(self):
         with tempfile.TemporaryDirectory() as folder:

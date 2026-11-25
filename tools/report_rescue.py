@@ -42,7 +42,6 @@ def allowed_output(path):
         or path
         in {
             "reports/index.html",
-            "reports/current-year.html",
             "reports/catalog/archive-index.json",
         }
         or bool(re.fullmatch(r"reports/weekend-\d+/weekend-report\.html", path))

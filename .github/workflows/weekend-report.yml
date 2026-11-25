@@ -167,7 +167,6 @@ jobs:
           {
             echo '## F1 보고서'
             echo ''
-            echo '[올해 보고서](https://htmlpreview.github.io/?https://github.com/ckdtjs0911-glitch/Seony_F1/blob/main/reports/current-year.html)'
             echo ''
             echo '[누적 보고서](https://htmlpreview.github.io/?https://github.com/ckdtjs0911-glitch/Seony_F1/blob/main/reports/index.html)'
             echo ''

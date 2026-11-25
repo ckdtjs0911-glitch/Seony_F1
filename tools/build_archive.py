@@ -136,29 +136,6 @@ for(const y of [...new Set(entries.map(x=>x.year))].sort((a,b)=>b-a))option(year
         "ATTACHMENT_ASSETS", json.dumps(attachment_assets)
     )
     (root / "index.html").write_text(page, encoding="utf-8")
-    current_entries = [entry for entry in entries if entry["year"] == now.year]
-    if current_entries:
-        current_data = json.dumps(current_entries, ensure_ascii=False).replace(
-            "<", "\\u003c"
-        )
-        current_page = (
-            template.replace("ARCHIVE_DATA", current_data)
-            .replace(
-                "ATTACHMENT_ASSETS",
-                json.dumps(
-                    {
-                        key: attachment_assets[key]
-                        for entry in current_entries
-                        for key in entry.get("attachment_assets", [])
-                    }
-                ),
-            )
-            .replace("<title>F1 누적 보고서</title>", f"<title>{now.year}년 F1 보고서</title>")
-            .replace("SEONY F1 / ACCUMULATED ARCHIVE", f"SEONY F1 / {now.year} SEASON")
-        )
-    else:
-        current_page = f'<html lang="ko"><meta charset="utf-8"><title>{now.year}년 F1 보고서</title><h1>{now.year}년 F1 보고서</h1><p>아직 수집된 세션 목록이 없습니다.</p></html>'
-    (root / "current-year.html").write_text(current_page, encoding="utf-8")
     metadata = [{k: v for k, v in entry.items() if k != "payload"} for entry in entries]
     report.save_json(root / "catalog" / "archive-index.json", metadata)
     print(

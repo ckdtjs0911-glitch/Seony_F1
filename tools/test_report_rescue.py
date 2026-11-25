@@ -28,7 +28,6 @@ class ReportRescueTests(unittest.TestCase):
             "import weekend_report as r\n"
             "def build(root):\n"
             "    (root/'index.html').write_text(r.LABEL)\n"
-            "    (root/'current-year.html').write_text(r.LABEL)\n"
         )
         (self.root / "tools/test_fixture.py").write_text(
             "import unittest\nimport weekend_report as r\n"
@@ -80,7 +79,8 @@ class ReportRescueTests(unittest.TestCase):
         result = self.prepare()
         self.assertEqual(result["status"], "validated")
         patch = (self.output / "validated-rescue.patch").read_text()
-        self.assertIn("reports/current-year.html", patch)
+        self.assertIn("reports/index.html", patch)
+        self.assertNotIn("reports/current-year.html", patch)
         self.assertIn("reports/weekend-1/weekend-report.html", patch)
         self.assertEqual(result["base_sha"], self.base)
         self.assertEqual(
