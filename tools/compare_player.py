@@ -82,3 +82,14 @@ def render_player(snapshot, directory):
 <canvas id="replay-canvas" width="1280" height="720" style="width:100%;max-width:1280px;background:#0b1321" aria-label="선택한 두 선수의 속도 비교 재생"></canvas>
 <p>1초 넘는 데이터 공백은 빈 구간으로 표시합니다. 브레이크는 압력이 아닌 사용 여부입니다. 타이어·연료 조건이 다를 수 있으며, 그래프 교차는 추월 횟수가 아닙니다.</p>
 </section><script type="application/octet-stream" id="replay-payload">''' + payload + '</script><script>' + script + '</script>'
+
+
+def player_sources(snapshot, directory):
+    """Sources for the two-driver comparison; call only when the player is rendered."""
+    from report_sources import openf1, when
+    key = snapshot['session'].get('session_key')
+    path = directory / f'{key}-compare.json.gz'
+    value = json.loads(gzip.decompress(path.read_bytes())) if path.exists() else {}
+    if value.get('session_key') != key:
+        return []
+    return [f"OpenF1 {openf1('car_data', key)} · {openf1('laps', key)} · 수집 {when(value.get('fetched_at'))}"]

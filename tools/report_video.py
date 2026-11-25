@@ -309,7 +309,24 @@ def render_section(snapshot, media_root=None):
         cards.append(f'<h3>{html.escape(video["title"])}</h3><p>{html.escape(video["description"])}</p><p><label>영상 재생 속도 <select id="rank-video-rate" aria-label="순위 흐름 영상 재생 속도">{rates}</select></label></p><video id="rank-flow-video" controls autoplay muted loop playsinline preload="metadata" style="width:100%;max-width:1280px;background:#0b1321" src="{uri}"></video><script>(()=>{{const rate=document.getElementById("rank-video-rate"),video=document.getElementById("rank-flow-video");rate.addEventListener("change",()=>{{video.playbackRate=Number(rate.value);}});}})();</script><p><a download="{html.escape(asset.name)}" href="{uri}">MP4 영상 다운로드</a></p>')
     if not cards:
         return ""
-    return '<section id="data-videos"><h2>영상으로 보는 레이스</h2><p>실제 수집한 OpenF1 데이터로 만든 그래픽 영상입니다. 중계 장면이나 추정 제동 압력은 포함하지 않습니다.</p>' + gap_player + "".join(cards) + player + f'<p>출처: <a href="https://openf1.org/docs/">OpenF1 car_data · position · intervals · location · laps</a> · 수집 {html.escape(value["fetched_at"])}<br>구성 참고: <a href="{REFERENCE}">라스베가스 랩 차트 릴스</a> (공개 설명만 확인, 영상 화면 미확인).</p></section>'
+    return '<section id="data-videos"><h2>영상으로 보는 레이스</h2><p>실제 수집한 OpenF1 데이터로 만든 그래픽 영상입니다. 중계 장면이나 추정 제동 압력은 포함하지 않습니다.</p>' + gap_player + "".join(cards) + player + '</section>'
+
+
+def video_sources(snapshot, media_root=None):
+    """Sources for the rank-flow MP4; call only when the video is rendered."""
+    from report_sources import link, openf1, when
+    key = snapshot["session"].get("session_key")
+    directory = media_root or ROOT / "reports" / f"weekend-{snapshot['session'].get('meeting_key')}" / "media"
+    path = directory / f"{key}-videos.json"
+    value = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    if value.get("session_key") != key:
+        return []
+    entries = [f"OpenF1 {openf1('position', key)} · {openf1('laps', key)} · 수집 {when(value.get('fetched_at'))}"]
+    gaps = directory / f"{key}-intervals.json"
+    if gaps.exists():
+        entries.append(f"앞차와 간격: OpenF1 {openf1('intervals', key)} · 수집 {when(json.loads(gaps.read_text(encoding='utf-8')).get('fetched_at'))}")
+    entries.append(f"구성 참고: {link(REFERENCE, '라스베가스 랩 차트 릴스')} · 공개 설명만 확인했고 영상 화면은 확인하지 못했습니다. 데이터 검증 자료가 아닙니다.")
+    return entries
 
 
 def main():

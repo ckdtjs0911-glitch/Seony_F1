@@ -115,10 +115,31 @@ def render_source(snapshot):
     c=v['comparison'];count=sum(x['sample_count'] for x in v['car_data'].values())
     if v['status']!='connected':
         public=f'선수 결과 {len(v["results"])}명 조회 완료' if v['results'] else '해당 세션의 일정 조회 완료'
-        limitation='상세 랩·차량 데이터 서버가 F1 TV 인증을 요구해 조회를 보류했습니다.' if v.get('timing_auth_required') else '상세 랩·차량 데이터는 수집하지 못했습니다.'
-        return f'<section class="fastf1-source"><h3>FastF1 보조 데이터 연결</h3><p>{public} · {html.escape(v["identity"]["event"])} · {html.escape(v["identity"]["session"])}</p><p>{limitation} 랩·텔레메트리 대조는 완료로 처리하지 않았으며 기존 OpenF1 기록을 유지합니다.</p><p>조회 {html.escape(v["fetched_at"])} · FastF1 소스 {v["library_commit"][:12]} · <a href="https://docs.fastf1.dev/">FastF1 공식 문서</a> · 결과 출처 FastF1 Ergast/Jolpica 백엔드</p></section>'
-    return f'<section class="fastf1-source"><h3>FastF1 보조 데이터 연결</h3><p>실제 수집 완료 · {len(v["laps"]):,}개 랩 · 차량 샘플 {count:,}개 확인</p><p>동일 선수·동일 랩 {c["matched_laps"]:,}개 대조 · 0.002초 초과 차이 {c["differences_over_2ms"]:,}개 · 선수 번호·약어 불일치 {len(c["unmatched_driver_numbers"])}명. 기존 OpenF1 기록을 덮어쓰지 않았습니다.</p><p>수집 {html.escape(v["fetched_at"])} · FastF1 {html.escape(v["library_version"])} · 소스 {v["library_commit"][:12]}<br><a href="https://docs.fastf1.dev/">FastF1 공식 문서</a> · 같은 타이밍 원본을 사용할 수 있어 독립적인 공식 검증을 뜻하지 않습니다. 브레이크는 사용 여부이며 제동 압력이 아닙니다.</p></section>'
+        limitation='상세 랩·차량 데이터 서버가 HTTP 401 응답으로 F1 TV 인증을 요구해 조회를 보류했습니다(인증 대기).' if v.get('timing_auth_required') else '상세 랩·차량 데이터는 수집하지 못했습니다.'
+        return f'<section class="fastf1-source"><h3>FastF1 보조 데이터 연결</h3><p>{public} · {html.escape(v["identity"]["event"])} · {html.escape(v["identity"]["session"])}</p><p>{limitation} 랩·텔레메트리 대조는 완료로 처리하지 않았으며 기존 OpenF1 기록을 유지합니다.</p></section>'
+    return f'<section class="fastf1-source"><h3>FastF1 보조 데이터 연결</h3><p>실제 수집 완료 · {len(v["laps"]):,}개 랩 · 차량 샘플 {count:,}개 확인</p><p>동일 선수·동일 랩 {c["matched_laps"]:,}개 대조 · 0.002초 초과 차이 {c["differences_over_2ms"]:,}개 · 선수 번호·약어 불일치 {len(c["unmatched_driver_numbers"])}명. 기존 OpenF1 기록을 덮어쓰지 않았습니다.</p><p>같은 타이밍 원본을 사용할 수 있어 독립적인 공식 검증을 뜻하지 않습니다. 브레이크는 사용 여부이며 제동 압력이 아닙니다.</p></section>'
 
+
+
+def fastf1_sources(snapshot):
+    """Source details for the FastF1 section; call only when it is rendered."""
+    from report_sources import link,when
+    s=snapshot['session'];key=s.get('session_key');directory=ROOT/'reports'/f'weekend-{s.get("meeting_key")}'/'media'
+    path=directory/f'{key}-fastf1.json';failure=directory/f'{key}-fastf1-status.json';docs=link('https://docs.fastf1.dev/','FastF1 공식 문서')
+    if not path.exists():
+        if not failure.exists():return []
+        checked=json.loads(failure.read_text(encoding='utf-8')).get('checked_at')
+        return [f'FastF1 조회 시도 {when(checked)} · 데이터 미수집 · {docs}']
+    v=json.loads(path.read_text(encoding='utf-8'))
+    if v.get('session_key')!=key:return []
+    library=f'FastF1 {html.escape(str(v.get("library_version") or "버전 미기록"))} · 소스 커밋 {html.escape(str(v.get("library_commit") or "")[:12])} · {docs}'
+    if v.get('status')=='connected':
+        return [f'F1 타이밍·텔레메트리(FastF1 경유) · 수집 {when(v.get("fetched_at"))}',library]
+    public='공개 결과: FastF1 Ergast/Jolpica 백엔드' if v.get('results') else '공개 일정: FastF1 일정 조회'
+    entries=[f'{public} · 조회 {when(v.get("fetched_at"))}']
+    if v.get('timing_http_status') is not None:
+        entries.append(f'상세 타이밍 서버 응답 HTTP {html.escape(str(v["timing_http_status"]))}'+(' · 인증 대기, 상세 데이터 미수집' if v.get('timing_auth_required') else ' · 상세 데이터 미수집'))
+    return entries+[library]
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--snapshot',type=Path);parser.add_argument('--root',type=Path,default=ROOT/'reports');parser.add_argument('--force',action='store_true');parser.add_argument('--timing-only',action='store_true');parser.add_argument('--authenticated',action='store_true',help='Use operator-configured F1 account credentials for detailed timing; never put credentials in command arguments');args=parser.parse_args()

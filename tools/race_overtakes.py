@@ -81,5 +81,11 @@ def render_overtakes(snapshot):
             position = e.get('position')
             body += f'<tr><td>{e["when"].strftime("%m-%d %H:%M:%S.%f")[:-3]}</td><td>{escape(name(other))}</td><td>{label} (API)</td><td>{escape(str(position if position is not None else "—"))}</td></tr>'
         body += '</tbody></table></div></details>'
-    url = f'https://api.openf1.org/v1/overtakes?session_key={snapshot["session"].get("session_key", "")}'
-    return header + notice + body + f'<p>출처: <a href="{escape(url, quote=True)}">OpenF1 순위 교환 원본</a> · <a href="https://openf1.org/docs/#overtakes">집계 정의</a></p></section>'
+    return header + notice + body + '</section>'
+
+
+def overtake_sources(snapshot):
+    """Sources for the position-exchange appendix; call only when it is rendered."""
+    from report_sources import link, openf1
+    key = snapshot["session"].get("session_key", "")
+    return [f"OpenF1 {openf1('overtakes', key)} (보고서 스냅샷) · {link('https://openf1.org/docs/#overtakes', '집계 정의')}"]

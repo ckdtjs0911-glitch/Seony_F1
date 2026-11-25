@@ -124,5 +124,21 @@ def render_gaps(snapshot, directory):
 <p id="gap-status" role="status">위치 데이터를 준비하고 있습니다.</p><canvas id="gap-canvas" width="1280" height="600" style="width:100%;max-width:1280px" aria-label="시간별 서킷 위치와 원형 시간 간격"></canvas>
 <p>간격은 OpenF1 intervals의 최근 10초 이내 기록만 표시합니다. 위치는 0.5초 간격으로 저장하며 2초 넘는 공백은 숨깁니다. 랩 차이는 초로 바꾸지 않고 +1 LAP처럼 표시합니다. 점의 중간 이동은 표시용 보간입니다.</p>
 <p>청록색 PIT LANE은 확인된 지도 경로를 세션 좌표에 근사 정합한 참고선입니다. 차량의 실제 피트 이동 궤적과는 구분합니다. ‘PIT LAP’은 피트 기록이 있는 랩이며 정확한 피트 진입·출구 시각은 아닙니다. 지도 경로가 없으면 실제 관측에서 분리된 추정 경로만 표시합니다.</p>
-<p>피트 지도: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors · ODbL 1.0</a> · 정합 기준: <a href="https://github.com/bacinger/f1-circuits">bacinger/f1-circuits · MIT</a></p>
-<p>구성 참고: <a href="https://f1cosmos.com/ko/dashboard/replay/11326">F1 COSMOS 리플레이</a> · 제공된 화면을 참고했으며 사이트 리플레이 데이터는 직접 검증하지 못했습니다.</p></section><script id="gap-payload" type="application/octet-stream">'''+payload+'</script><script>'+script+'</script>'
+</section><script id="gap-payload" type="application/octet-stream">'''+payload+'</script><script>'+script+'</script>'
+
+
+def gap_sources(snapshot, directory):
+    """Sources for the map/interval replay; call only when it is rendered."""
+    from report_sources import link, map_credit, openf1, when
+    key = snapshot['session'].get('session_key')
+    path = directory / f'{key}-track.json.gz'
+    value = json.loads(gzip.decompress(path.read_bytes())) if path.exists() else {}
+    if value.get('session_key') != key:
+        return []
+    entries = [f"위치: OpenF1 {openf1('location', key)} · 수집 {when(value.get('fetched_at'))}"]
+    gaps = directory / f'{key}-intervals.json'
+    if gaps.exists():
+        entries.append(f"간격: OpenF1 {openf1('intervals', key)} · 수집 {when(json.loads(gaps.read_text(encoding='utf-8')).get('fetched_at'))}")
+    entries += map_credit(value.get('pit_reference'))
+    entries.append(f"구성 참고: {link('https://f1cosmos.com/ko/dashboard/replay/11326', 'F1 COSMOS 리플레이')} · 사용자가 제공한 화면을 참고했으며 사이트 리플레이 데이터는 직접 검증하지 못했습니다. 이 세션의 데이터 출처가 아닙니다.")
+    return entries

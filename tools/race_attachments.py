@@ -1,6 +1,7 @@
 """Year-scoped race reference attachments, embedded for offline use."""
 import base64
 import json
+import re
 from html import escape
 from pathlib import Path
 
@@ -81,7 +82,7 @@ def render_race_attachments(snapshot, directory=None, starting_tyre_summaries=No
         if Path(name).name != name:
             raise ValueError("Attachment filename must not contain a directory")
         path = directory / name
-        heading = f'<h4>{escape(item["title"])}</h4><p class="meta">{year}년 · {escape(item.get("source", "참고자료"))}</p>'
+        heading = f'<h4>{escape(item["title"])}</h4><p class="meta">{year}년</p>'
         if item.get("kind") == "starting-tyres":
             cards.append(starting_card)
             has_starting_card = True
@@ -112,3 +113,30 @@ def render_race_attachments(snapshot, directory=None, starting_tyre_summaries=No
         + "".join(cards)
         + "</div></section>"
     )
+
+
+def attachment_sources(snapshot, page, directory=None):
+    """Per-card sources for the rendered tyre appendix ``page``."""
+    from report_sources import openf1, when
+    if snapshot["session"]["session_name"] != "Race" or 'id="race-tyre-attachments"' not in page:
+        return []
+    directory = directory or ATTACHMENTS
+    manifest = directory / "manifest.json"
+    session = snapshot["session"]
+    year = session.get("year") or int(session["date_start"][:4])
+    items = [i for i in (json.loads(manifest.read_text(encoding="utf-8")) if manifest.exists() else []) if i["year"] == year]
+    found = []
+    for item in items:
+        if item.get("kind") == "starting-tyres":
+            continue
+        shown = "data-compound-selection" in page if item.get("kind") == "compound-selection" else f'<img src="data:' in page and f'alt="{escape(item["title"])}"' in page
+        if shown:
+            found.append((item["title"], [f'{escape(item.get("source", "참고자료"))} · reports/attachments/manifest.json']))
+    if "data-starting-tyres" in page:
+        key = session.get("session_key")
+        shown_keys = [k for k, row in re.findall(r'<tr data-start-session="([^"]+)">(.*?)</tr>', page) if "display:flex" in row]
+        found.append(("그랑프리별 스타트 타이어", [
+            f"선택한 레이스: OpenF1 {openf1('stints', key)} · {openf1('session_result', key)} · 수집 {when(snapshot.get('fetched_at'))}",
+            f"표에 집계된 레이스 {len(shown_keys)}개: 저장된 OpenF1 스냅샷 reports/weekend-*/data/&lt;session_key&gt;.json의 stints · session_result · session_key " + escape(", ".join(shown_keys) or "없음"),
+        ]))
+    return found

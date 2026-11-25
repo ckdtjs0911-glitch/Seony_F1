@@ -82,6 +82,19 @@ def render_qualifying(snapshot,directory=None):
     return f'''<section class="qualifying-replay" id="qualifying-replay-{key}"><h3>시간별 퀄리파잉 위치 · Q1/Q2/Q3</h3><p>선택한 단계의 실제 서킷 위치와 그 시점까지 완료한 유효 최고 랩입니다. 오른쪽 차이는 해당 단계 1위 랩타임과의 차이이며, 차량 사이 주행 간격이 아닙니다.</p>
 <p><label>단계 <select class="q-phase" aria-label="퀄리파잉 단계"><option value="1">Q1</option><option value="2">Q2</option><option value="3">Q3</option></select></label> <button class="q-play" type="button">일시정지</button> <input class="q-seek" type="range" min="0" max="1000" value="0" aria-label="퀄리파잉 재생 위치" style="width:40%"> <select class="q-rate" aria-label="퀄리파잉 재생 속도"><option value="1">1배속</option><option value="4" selected>4배속</option><option value="8">8배속</option><option value="16">16배속</option><option value="32">32배속</option></select> <span class="q-clock"></span></p>
 <p class="q-status" role="status">위치 데이터를 준비하고 있습니다.</p><canvas class="q-canvas" width="1280" height="680" style="width:100%;max-width:1280px" aria-label="퀄리파잉 위치와 단계별 최고 랩"></canvas>
-<p>기록은 랩 완료 뒤 반영하며, 최종 삭제 확인 랩과 아웃랩은 제외합니다. 단계 구간은 세션 시작·종료 기록을 사용합니다. 위치가 2초 넘게 비면 숨깁니다. 미관측 위치를 피트에 있다고 추정하지 않습니다. 출처: OpenF1 location·laps·race_control.</p>
-<p>청록색 피트레인은 지도 경로를 근사 정합한 참고선입니다. © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors · ODbL 1.0</a> · 정합 기준 <a href="https://github.com/bacinger/f1-circuits">bacinger/f1-circuits · MIT</a>. 실제 차량 궤적과는 구분합니다.</p>
+<p>기록은 랩 완료 뒤 반영하며, 최종 삭제 확인 랩과 아웃랩은 제외합니다. 단계 구간은 세션 시작·종료 기록을 사용합니다. 위치가 2초 넘게 비면 숨깁니다. 미관측 위치를 피트에 있다고 추정하지 않습니다.</p>
+<p>청록색 피트레인은 지도 경로를 근사 정합한 참고선이며 실제 차량 궤적과는 구분합니다.</p>
 <script class="q-payload" type="application/octet-stream">{payload}</script><script>{script}</script></section>'''
+
+
+def qualifying_sources(snapshot,directory=None):
+    """Sources for the Q1/Q2/Q3 replay; call only when it is rendered."""
+    from report_sources import map_credit,openf1,when
+    key=snapshot['session'].get('session_key');meeting=snapshot['session'].get('meeting_key')
+    directory=directory or ROOT/'reports'/f'weekend-{meeting}'/'media'
+    path=directory/f'{key}-qualifying.json.gz'
+    meta=json.loads(gzip.decompress(path.read_bytes())) if path.exists() else {}
+    if meta.get('session_key')!=key or not meta.get('complete'):return []
+    entries=[f"위치: OpenF1 {openf1('location',key)} · 수집 {when(meta.get('fetched_at'))}",
+             f"단계 구간·랩: OpenF1 {openf1('race_control',key)} · {openf1('laps',key)} (보고서 스냅샷)"]
+    return entries+map_credit(meta.get('pit_reference'))

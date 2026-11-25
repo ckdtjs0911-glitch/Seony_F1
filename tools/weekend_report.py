@@ -19,6 +19,7 @@ from race_overtakes import render_overtakes
 from report_video import render_section as render_video_section
 from qualifying_replay import render_qualifying
 from fastf1_source import render_source as render_fastf1_source
+import report_sources
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from openf1.util import openf1_client  # noqa: E402
@@ -213,8 +214,8 @@ def render_verdicts(name, rows):
             f'<tr data-search="{search}"><td>{rank}</td><td><b>#{row["number"]} {esc(row["name"])}</b><small>{esc(row["team"])}</small></td><td class="verdict-text">{esc(text)}</td></tr>'
         )
     return (
-        '<h3>선수별 한줄 평</h3><p class="meta">관측 기록에 근거한 자동 요약입니다. 연료량·타이어·트래픽을 보정한 실력 평가는 아닙니다. 10명씩 넘겨 볼 수 있습니다.</p>'
-        '<div class="scroll result-table driver-verdict-table"><table><thead><tr><th>API 순위</th><th>드라이버 / 팀</th><th>기록 기반 한줄 평</th></tr></thead><tbody>'
+        '<h3>선수별 한 줄 평</h3><p class="meta">관측 기록에 근거한 자동 요약입니다. 연료량·타이어·트래픽을 보정한 실력 평가는 아닙니다. 10명씩 넘겨 볼 수 있습니다.</p>'
+        '<div class="scroll result-table driver-verdict-table"><table><thead><tr><th>API 순위</th><th>드라이버 / 팀</th><th>기록 기반 한 줄 평</th></tr></thead><tbody>'
         + "".join(lines)
         + "</tbody></table></div>"
     )
@@ -511,11 +512,52 @@ CHART_JS = ROOT / "tools" / "report_charts.js"
 CHART_SECTION = """<section id="lap-sector-analysis" class="chart-workspace" style="scroll-margin-top:24px"><div class="chart-kicker">SESSION TELEMETRY</div><h2>랩타임 &amp; 섹터 분석</h2><div id="session-tabs" class="session-tabs" role="tablist" aria-label="세션 선택"></div><div id="chart-panel" role="tabpanel"><div class="chart-toolbar"><label for="chart-search">선수 / 팀 검색</label><input id="chart-search" type="search" placeholder="예: 노리스, 멕라렌, McLaren" aria-label="차트 선수 또는 팀 검색"><select id="chart-driver" aria-label="드라이버 선택"></select><span id="chart-search-status" class="meta" role="status" aria-live="polite"></span><label id="qualifying-phase-control" hidden>퀄리파잉 구간<select id="qualifying-phase" aria-label="퀄리파잉 구간"><option value="all">전체</option><option value="1">Q1</option><option value="2">Q2</option><option value="3">Q3</option><option value="unknown">미구분</option></select></label></div><p id="qualifying-record" class="meta" hidden></p><p id="chart-summary" class="chart-caption"></p><article class="chart-card"><h3>랩타임 <small>점에 마우스를 올리거나 터치하면 0.001초 단위 기록이 표시됩니다</small></h3><div class="scroll"><svg id="chart-time" viewBox="0 0 1100 320" role="img" aria-label="랩타임 차트"></svg></div></article><h3 class="sector-heading">섹터별 선수 시간</h3><p class="sector-hint">같은 세션·드라이버의 섹터 1·2·3 기록입니다. 기록이 없는 랩 앞뒤는 선으로 잇지 않습니다. 타이어는 스틴트의 명시된 랩 범위로 연결하며, 범위가 겹치거나 없으면 미확인입니다.</p><article class="chart-card"><h3>섹터 1</h3><div class="scroll"><svg id="chart-s1" viewBox="0 0 1100 320" role="img" aria-label="섹터 1 차트"></svg></div></article><article class="chart-card"><h3>섹터 2</h3><div class="scroll"><svg id="chart-s2" viewBox="0 0 1100 320" role="img" aria-label="섹터 2 차트"></svg></div></article><article class="chart-card"><h3>섹터 3</h3><div class="scroll"><svg id="chart-s3" viewBox="0 0 1100 320" role="img" aria-label="섹터 3 차트"></svg></div></article></div><p class="chart-caption">점 색상은 사용 타이어를 나타내며, 빨간 테두리는 삭제가 확인된 랩입니다 · 키보드 Tab으로 점을 선택할 수 있습니다 · 느린 랩도 생략하지 않고 표시합니다</p></section><div id="chart-tooltip" class="chart-tooltip" role="status" aria-live="polite" hidden></div>"""
 
 
+def item_sources(item, events_html, video_html, qualifying_html, fastf1_html, appendix):
+    """Per-item sources for one session, limited to sections that were rendered."""
+    from report_sources import link, openf1, when
+    from report_video import ROOT as video_root, video_sources
+    from race_gaps import gap_sources
+    from compare_player import player_sources
+    from qualifying_replay import qualifying_sources
+    from fastf1_source import fastf1_sources
+    from race_overtakes import overtake_sources
+    from race_attachments import attachment_sources
+    session = item["session"]
+    key = session.get("session_key", "")
+    media = video_root / "reports" / f'weekend-{session.get("meeting_key")}' / "media"
+    base = [
+        "OpenF1 " + " · ".join(openf1(e, key) for e in ENDPOINTS) + f" · 수집 {when(item.get('fetched_at'))}"
+    ]
+    if session.get("meeting_key"):
+        base.append(link(f'https://api.openf1.org/v1/sessions?meeting_key={session["meeting_key"]}', "OpenF1 주말 세션 목록"))
+    found = [("기록 설명 · 결과 표 · 선수별 한 줄 평 · 타이어 스틴트 · 랩타임 & 섹터 분석", base)]
+    if 'id="race-incidents"' in events_html:
+        found.append(("레이스 주요 상황 · 리타이어", [f"OpenF1 {openf1('race_control', key)} · {openf1('session_result', key)} (보고서 스냅샷)"]))
+    if 'id="race-gap-replay"' in video_html:
+        found.append(("시간별 레이스 위치 · 앞차와 간격", gap_sources(item, media)))
+    if 'id="rank-flow-video"' in video_html:
+        found.append(("레이스 순위 흐름 MP4", video_sources(item, media)))
+    if 'id="driver-replay"' in video_html:
+        found.append(("두 선수 선택 · 차량 데이터 비교", player_sources(item, media)))
+    if 'class="qualifying-replay"' in qualifying_html:
+        found.append(("시간별 퀄리파잉 위치 · Q1/Q2/Q3", qualifying_sources(item)))
+    if fastf1_html:
+        found.append(("FastF1 보조 데이터", fastf1_sources(item)))
+    if appendix.get("pit"):
+        found.append(("팀·선수별 피트스탑 기록", [f"OpenF1 {openf1('pit', key)} · {openf1('stints', key)} (보고서 스냅샷)"]))
+    if appendix.get("tyres"):
+        found.extend(attachment_sources(item, appendix["tyres"]))
+    if appendix.get("overtakes"):
+        found.append(("오버테이크 · 선수별 순위 교환 기록", overtake_sources(item)))
+    return found
+
+
 def render(snapshots, output, now=None, starting_tyre_summaries=None):
     now = now or datetime.now(timezone.utc)
     sections, chart_data, summary = [], [], []
     race_appendix = ""
     overtake_appendix = ""
+    source_groups = []
     for item in snapshots:
         session = item["session"]
         name = session["session_name"]
@@ -526,11 +568,9 @@ def render(snapshots, output, now=None, starting_tyre_summaries=None):
         summary.append(
             f'<li><a href="#{anchor(name)}">{label}</a> · {count} · {esc(item["status"])}</li>'
         )
-        fetched = item.get("fetched_at")
         body = (
             f'<h2 id="{anchor(name)}">{label}</h2>'
-            f'<p class="meta">{esc(item["status"])} · session_key {esc(session.get("session_key", "—"))}'
-            f' · 수집 시각 {esc(display_time(fetched) if fetched else "—")}</p>'
+            f'<p class="meta">{esc(item["status"])} · session_key {esc(session.get("session_key", "—"))}</p>'
         )
         if item.get("error"):
             body += (
@@ -546,15 +586,22 @@ def render(snapshots, output, now=None, starting_tyre_summaries=None):
             render_beginner_notes(name, rows)
             + render_table(name, rows) + render_verdicts(name, rows) + render_stints(rows)
         )
-        body += render_race_events(item, rows)
-        body += render_video_section(item)
-        body += render_qualifying(item)
-        body += render_fastf1_source(item)
+        events_html = render_race_events(item, rows)
+        video_html = render_video_section(item)
+        qualifying_html = render_qualifying(item)
+        fastf1_html = render_fastf1_source(item)
+        body += events_html + video_html + qualifying_html + fastf1_html
+        appendix = {}
         if name == "Race":
-            overtake_appendix = render_overtakes(item)
-            race_appendix = render_pitstops(item, rows) + render_race_attachments(
+            appendix["pit"] = render_pitstops(item, rows)
+            appendix["tyres"] = render_race_attachments(
                 item, starting_tyre_summaries=starting_tyre_summaries
             )
+            appendix["overtakes"] = overtake_appendix = render_overtakes(item)
+            race_appendix = appendix["pit"] + appendix["tyres"]
+        source_groups.append(
+            (label, item_sources(item, events_html, video_html, qualifying_html, fastf1_html, appendix))
+        )
         chart_data.extend(dict(row, session=label) for row in rows)
         sections.append(body)
     location = next(
@@ -594,11 +641,11 @@ def render(snapshots, output, now=None, starting_tyre_summaries=None):
     chart_js = CHART_JS.read_text(encoding=ENCODING).replace("REPORT_ROWS", safe_json)
     page = f"""<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(location)} · F1 {esc(heading)}</title>
 <style>{STYLE}</style></head><body>
-<main><header><p class="eyebrow">SEONY F1 / WEEKEND REPORT</p><h1>{esc(location)} · {esc(heading)}</h1><p>{esc(coverage)}<br>생성 시각 {display_time(now)} · 데이터 출처 OpenF1 API</p><button type="button" onclick="document.querySelectorAll('details').forEach(d=>d.open=true);window.print()">인쇄 / PDF 저장</button></header>
+<main><header><p class="eyebrow">SEONY F1 / WEEKEND REPORT</p><h1>{esc(location)} · {esc(heading)}</h1><p>{esc(coverage)}<br>생성 시각 {display_time(now)} · 출처는 맨 아래 <a href="#{report_sources.ANCHOR}">항목별 출처</a></p><button type="button" onclick="document.querySelectorAll('details').forEach(d=>d.open=true);window.print()">인쇄 / PDF 저장</button></header>
 <p class="notice">OpenF1 API 데이터로 만든 보고서이며, FIA 공식 결과와 별도로 대조하지 않았습니다. 데이터 대기·누락·갱신 실패는 구분해 표시합니다. 각 세션의 선수 목록은 drivers·session_result·laps 응답에 나온 선수를 모두 합친 것입니다. 일정에 따라 아직 열리지 않은 세션이 있을 수 있습니다.</p>
-<ul>{"".join(summary)}{race_shortcut}<li><a href="#lap-sector-analysis">랩타임 &amp; 섹터 분석</a> · 세션별 랩·섹터·타이어 차트</li></ul><input id="search" type="search" placeholder="선수 / 팀 검색 (예: 노리스, 멕라렌)" aria-label="선수 또는 팀 검색">{"".join(sections)}
+<ul>{"".join(summary)}{race_shortcut}<li><a href="#lap-sector-analysis">랩타임 &amp; 섹터 분석</a> · 세션별 랩·섹터·타이어 차트</li><li><a href="#{report_sources.ANCHOR}">항목별 출처</a></li></ul><input id="search" type="search" placeholder="선수 / 팀 검색 (예: 노리스, 멕라렌)" aria-label="선수 또는 팀 검색">{"".join(sections)}
 {CHART_SECTION}
-<h2>지표 해석과 한계</h2><ul>{methodology}</ul><h2>출처</h2><p><a href="https://api.openf1.org/v1/sessions?meeting_key={esc(meeting)}">OpenF1 주말 세션 목록</a> · 각 session_key에 대한 drivers, session_result, laps, stints, pit, race_control 엔드포인트<br>이 HTML 파일 하나로 인터넷 연결 없이 표·검색·차트를 사용할 수 있습니다.</p>{race_appendix}{overtake_appendix}</main>
+<h2>지표 해석과 한계</h2><ul>{methodology}</ul>{race_appendix}{overtake_appendix}{report_sources.render_sources(source_groups)}</main>
 <style>{chart_css}</style><script>{chart_js}</script></body></html>"""
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(page, encoding=ENCODING)

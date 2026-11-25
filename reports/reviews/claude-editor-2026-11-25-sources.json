@@ -1,0 +1,59 @@
+{
+  "date": "2026-11-25",
+  "task": "Gather per-item sources at the end of every report; keep interpretation caveats in the body",
+  "base_commit": "b6ac62e",
+  "editor": "Claude Code (interactive session; no nested Claude CLI call)",
+  "status": "completed",
+  "rule": "AGENTS.md section '출처 배치'",
+  "code_changes": [
+    "tools/report_sources.py (new): time formatting, OpenF1 endpoint links, OSM/ODbL/MIT pit map credit, final '항목별 출처' section grouped by session and item.",
+    "tools/weekend_report.py: item_sources() adds sources only for rendered sections; session meta no longer shows collection time; header links to sources instead of naming the data source; old '출처' block removed; sources section now follows methodology, pit, tyre and overtake appendices as the last element of <main>; '한줄 평' spelled '한 줄 평'.",
+    "tools/report_video.py, tools/compare_player.py, tools/race_gaps.py, tools/qualifying_replay.py, tools/fastf1_source.py, tools/race_overtakes.py, tools/race_attachments.py, tools/race_starting_tyres.py: inline source URLs, collection times, library version/commit and OSM/COSMOS/reel credits moved into *_sources functions.",
+    "tools/fastf1_source.py: body now states the HTTP 401 response explicitly; sources distinguish public results from schedule-only lookups.",
+    "tools/test_report_sources.py (new): sources are the last section after every appendix; only rendered items are cited; weekend grouping by session; body caveats kept (overtake vs position exchange, map reference line vs car trajectory, FastF1 401, qualifying completed-lap rule); OSM/ODbL/MIT and COSMOS/reel limits present in sources; missing attachments not cited; schedule-only FastF1 wording."
+  ],
+  "kept_in_body": [
+    "Overtake notice: API position exchanges are not confirmed on-track passes",
+    "Pit map: teal line is an approximate reference, not the actual car trajectory; PIT LAP is not an exact pit entry/exit time",
+    "FastF1: public results retrieved, detailed server HTTP 401 shown as authentication pending, lap/telemetry comparison not completed",
+    "Qualifying replay: records applied only after lap completion; deleted and pit-out laps excluded",
+    "MP4 download link, navigation links and the methodology section"
+  ],
+  "unchanged": "Raw OpenF1 JSON, media (MP4, gz), map geometry, attachments, automation schedule and authentication settings were not modified or re-fetched.",
+  "regenerated": [
+    "reports/weekend-1299/race-report.html (11412)",
+    "reports/weekend-1299/qualifying-report.html (11408)",
+    "reports/weekend-1299/weekend-report.html",
+    "reports/weekend-1300/race-report.html (11420)",
+    "reports/weekend-1300/qualifying-report.html (11416)",
+    "reports/weekend-1300/weekend-report.html",
+    "reports/current-year.html",
+    "reports/index.html"
+  ],
+  "claude_edit_checks": [
+    "Extracted text of the regenerated reports (scripts, styles and data URIs excluded): the sources section is the last section of <main> in all four session reports and in archive payloads 11420/11408; no body URL, collection time or library version remains; the methodology sentence about snapshot storage is a method note, not a source detail.",
+    "Las Vegas weekend lists sources for FP2, FP3, qualifying and race only; no FP1 snapshot exists, so no FP1 sources are shown."
+  ],
+  "codex_review": {
+    "code_review_working_tree": {
+      "findings": [
+        {"finding": "Starting-tyre sources cited only the selected race", "action": "applied: lists the session keys of every race row with data"},
+        {"finding": "Missing attachment cards were cited by title", "action": "applied: cited only when the embedded image is present"}
+      ]
+    },
+    "wording_task_review": {
+      "findings": [
+        {"finding": "intervals.json time may differ from the file used for video/map", "action": "not applied: race_gaps.collect_gaps fetches intervals only when the file is absent, so the cited file is the one used"},
+        {"finding": "schedule_only status labelled as public results", "action": "applied"},
+        {"finding": "Body should state HTTP 401 explicitly", "action": "applied"},
+        {"finding": "'한줄 평' spacing", "action": "applied: '한 줄 평'"},
+        {"finding": "'수집 시각' still in body", "action": "checked: methodology sentence only, kept"}
+      ]
+    }
+  },
+  "validation": {
+    "related_tests": "python -m unittest test_report_sources test_race_events test_weekend_report test_race_gaps test_qualifying_replay test_fastf1_source test_beginner_notes test_archive test_report_video test_compare_player test_race_pitstops test_race_overtakes test_race_attachments test_race_starting_tyres test_circuit_geometry: 69 run, 68 passed, 1 error.",
+    "pre_existing_failures": "The 1 error is test_race_starting_tyres.test_earlier_race_in_archive_contains_later_race_start_tyres (cp949 decode); it is one of the 10 Windows cp949/git environment errors recorded in claude-editor-2026-11-25.json. The other 9 are in test_claude_report_review/test_report_rescue, which were not rerun.",
+    "not_verified": "Browser rendering and the public htmlpreview page were not checked."
+  }
+}

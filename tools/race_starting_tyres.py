@@ -224,7 +224,5 @@ def render_starting_tyres(snapshot, summaries):
         + '</tbody></table></div><div class="starting-tyre-drivers"><h5>선택한 대회 · 선수별 스타트 타이어</h5>'
         '<div class="scroll"><table><thead><tr><th>드라이버</th><th>팀</th><th>스타트 타이어</th><th>상태</th></tr></thead><tbody>'
         + "".join(details)
-        + '</tbody></table></div></div><p class="meta">선택한 레이스 수집 시각: '
-        + escape(snapshot.get("fetched_at") or "미제공")
-        + "</p></article>"
+        + "</tbody></table></div></div></article>"
     )
