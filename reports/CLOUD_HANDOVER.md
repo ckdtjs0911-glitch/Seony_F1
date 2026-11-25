@@ -5,6 +5,7 @@
 `ckdtjs0911-glitch/Seony_F1`만 사용한다. 최신 main을 확인하고 `AGENTS.md`, `CLAUDE.md`, `reports/AUTOMATION.md`를 읽는다.
 다른 저장소의 환경이 선택돼 있다면 그 저장소는 변경하지 않는다. 로컬 채팅 전체가 자동 이전된 것으로 가정하지 않는다.
 코드·설정·원본 데이터·보고서의 기준은 GitHub이며 이 문서는 2026년 11월 25일 인계 기준이다.
+클라우드 채팅은 [Seony_F1 클라우드 관리 인계](https://chatgpt.com/local/6b06caa4-c074-83ec-9116-af2eb62d90b1)다. 기본 클라우드 환경의 `/workspace/Seony_F1`에 저장소를 체크아웃하고 인계 문서를 읽은 것을 확인했다. 기존 로컬 예약 `f1-11-28`은 중복 실행 방지를 위해 일시 중지했다.
 
 ## 2. 자동 실행
 
@@ -20,7 +21,8 @@
 
 - OpenF1가 원본이다. FastF1은 `vendor/Fast-F1` 고정 submodule 및 `tools/fastf1_source.py`를 사용한다.
 - 공개 일정·결과 조회는 확인됐으나 FastF1 상세 타이밍 서버는 401 인증 대기 상태다. 결과만 조회한 것을 상세 랩·텔레메트리 연결 완료로 쓰지 않는다.
-- GitHub Claude 작업에는 저장소 secret `CLAUDE_CODE_OAUTH_TOKEN`이 필요하다. 로컬 Claude 로그인 성공을 GitHub 인증 성공으로 취급하지 않는다. 클라우드 secret 설정과 실제 첨삭 성공 여부는 아직 별도 확인이 필요하다.
+- GitHub Claude 작업에는 저장소 secret `CLAUDE_CODE_OAUTH_TOKEN`이 필요하다. 2026년 11월 25일 [클라우드 점검 45607843927](https://github.com/ckdtjs0911-glitch/Seony_F1/actions/runs/45607843927)에서 secret 등록과 GitHub 실행기의 실제 Claude 호출 성공을 확인했다. 앞선 점검 명령의 CLI 인수 오류는 수정했다. 연결 점검은 보고서 첨삭 완료를 뜻하지 않으며, 각 보고서의 실제 검토 기록은 따로 확인한다.
+- 같은 점검에서 OpenF1 client ID·client secret은 미등록이었다. 공개 접근 가능 데이터는 기존 경로를 사용하고 인증이 필요한 자료의 401은 미완료로 표시한다. 기존 전체 lint의 형식 오류도 남아 있으며 이번 전환에서 전체 lint 통과를 주장하지 않는다.
 - 기존 `claude-report-review.yml`의 review·rescue·검증을 유지한다. 실제 Claude 작업 기록 없이 첨삭 완료라고 쓰지 않는다. 토큰·인증 파일은 저장소나 로그에 남기지 않는다.
 - F1 COSMOS는 https://f1cosmos.com/ko 를 참고하되 실제 확인한 세션·항목만 출처로 기록한다. 리플레이 접근 실패와 순위 교환/실제 추월의 차이를 명시한다.
 
