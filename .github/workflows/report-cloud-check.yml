@@ -54,7 +54,7 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         working-directory: ${{ runner.temp }}
         run: |
-          if claude --print --max-turns 1 --tools '' 'Reply with exactly CONNECTED.' > claude-connection.txt 2> claude-connection-error.txt; then
+          if claude --print --max-turns 1 --tools '' -- 'Reply with exactly CONNECTED.' > claude-connection.txt 2> claude-connection-error.txt; then
             echo 'Claude 실제 호출: 성공' >> "$GITHUB_STEP_SUMMARY"
           else
             python - <<'PY'
