@@ -1,12 +1,13 @@
 name: F1 weekend reports
 
 on:
-  # Scheduled reports paused until 2026-11-28 00:00 Asia/Seoul.
-  # Resume crons (UTC; together they cover Friday 00:00 - Monday 23:59 KST only):
-  #   7,22,37,52 15-23 * * 4   (Thursday UTC = Friday KST)
-  #   7,22,37,52 * * * 5,6,0   (Friday-Sunday UTC)
-  #   7,22,37,52 0-14 * * 1    (Monday UTC = Monday KST)
-  # The gate reads only local files; external APIs are called only for sessions it lists.
+  # Runner-side restart gate keeps reports paused until the saved resume_at.
+  # These UTC schedules cover only Friday-Monday in Asia/Seoul.
+  # Each check reads checked-in files; collection APIs run only for due sessions.
+  schedule:
+    - cron: '7,22,37,52 15-23 * * 4'
+    - cron: '7,22,37,52 * * * 5,6,0'
+    - cron: '7,22,37,52 0-14 * * 1'
   workflow_dispatch:
     inputs:
       meeting:
@@ -154,3 +155,24 @@ jobs:
       source_sha: ${{ needs.report.outputs.source_sha }}
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+  report-links:
+    needs: [report, claude-review]
+    if: always() && needs.report.outputs.generated == 'true' && needs.report.outputs.source_sha != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish report links in the workflow summary
+        env:
+          REVIEW_RESULT: ${{ needs.claude-review.result }}
+        run: |
+          {
+            echo '## F1 보고서'
+            echo ''
+            echo '[올해 보고서](https://htmlpreview.github.io/?https://github.com/ckdtjs0911-glitch/Seony_F1/blob/main/reports/current-year.html)'
+            echo ''
+            echo '[누적 보고서](https://htmlpreview.github.io/?https://github.com/ckdtjs0911-glitch/Seony_F1/blob/main/reports/index.html)'
+            echo ''
+            echo '[HTML 파일과 세션 목록](https://github.com/ckdtjs0911-glitch/Seony_F1/tree/main/reports)'
+            echo ''
+            echo "Claude 작업 상태: $REVIEW_RESULT. 실제 첨삭·인증 결과는 Claude review artifact의 status.json을 확인하세요."
+            echo '공개 링크는 main의 최신 파일을 표시합니다. 외부 미리보기 서비스이며 화면 렌더링 검증을 뜻하지 않습니다.'
+          } >> "$GITHUB_STEP_SUMMARY"

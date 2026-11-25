@@ -18,6 +18,19 @@ WINDOW = timedelta(hours=1)
 AUTOMATIC_WEEKDAYS = (4, 5, 6, 0)  # Friday, Saturday, Sunday, Monday in KST
 
 
+def automatic_resumed(now, pause_config):
+    """Apply the saved restart date on the runner, without a local PC or API call.
+
+    Missing or invalid configuration fails closed: it must not silently enable
+    scheduled collection before the operator's requested restart.
+    """
+    try:
+        resume_at = stamp(load_json(pause_config)["resume_at"])
+        return resume_at.tzinfo is not None and now >= resume_at
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return False
+
+
 def session_catalog(reports):
     """Saved schedule only: catalog/sessions.json, then newer weekend-*/sessions.json."""
     sessions = {}
@@ -97,12 +110,15 @@ def main():
     parser.add_argument("--reports", type=Path, default=ROOT / "reports")
     parser.add_argument("--manual", action="store_true", help="Explicit user request; no weekday or window limit")
     parser.add_argument("--meeting", type=int)
+    parser.add_argument("--pause-config", type=Path, default=ROOT / ".github/report-pause.json")
     args = parser.parse_args()
     now = datetime.now(timezone.utc)
     if args.manual:
         meeting, keys = args.meeting, []
-    else:
+    elif automatic_resumed(now, args.pause_config):
         meeting, keys = due_sessions(session_catalog(args.reports), args.reports, now)
+    else:
+        meeting, keys = None, []
     run = args.manual or meeting is not None
     output = (
         f"run={'true' if run else 'false'}\nmeeting={meeting or ''}\n"

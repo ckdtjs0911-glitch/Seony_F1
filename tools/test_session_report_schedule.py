@@ -36,6 +36,35 @@ def no_network():
 
 
 class GateTests(unittest.TestCase):
+    def test_cloud_restart_gate_boundary_and_invalid_config(self):
+        with tempfile.TemporaryDirectory() as folder:
+            config = Path(folder) / "pause.json"
+            resume = datetime(2026, 11, 28, 0, 0, tzinfo=KST)
+            save_json(config, {"resume_at": resume.isoformat()})
+            a, b, c = no_network()
+            with a as http, b, c:
+                self.assertFalse(gate.automatic_resumed(resume - timedelta(seconds=1), config))
+                self.assertTrue(gate.automatic_resumed(resume, config))
+                self.assertTrue(gate.automatic_resumed(resume.astimezone(timezone.utc), config))
+                for value in ({}, {"resume_at": "invalid"}, {"resume_at": "2026-11-28T00:00:00"}):
+                    save_json(config, value)
+                    self.assertFalse(gate.automatic_resumed(resume, config))
+                self.assertFalse(gate.automatic_resumed(resume, Path(folder) / "missing"))
+                http.assert_not_called()
+
+    def test_paused_scheduled_main_never_reads_sessions_or_calls_network(self):
+        with tempfile.TemporaryDirectory() as folder:
+            config = Path(folder) / "pause.json"
+            save_json(config, {"resume_at": "2099-01-01T00:00:00+09:00"})
+            out = io.StringIO()
+            a, b, c = no_network()
+            with a, b, c, patch.object(gate, "session_catalog") as catalog, \
+                    patch("sys.argv", ["gate", "--pause-config", str(config)]), \
+                    patch.dict(os.environ, {"GITHUB_OUTPUT": ""}), redirect_stdout(out):
+                gate.main()
+            catalog.assert_not_called()
+            self.assertEqual(out.getvalue(), "run=false\nmeeting=\nsessions=\n")
+
     def due(self, sessions, now, root):
         return gate.due_sessions(sessions, root, now)
 

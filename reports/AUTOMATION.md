@@ -9,8 +9,10 @@
 2026년 11월 28일부터 주말 자동화를 재개합니다. 주간 과거자료 보충 예약은 재개하지 않습니다.
 보고서는 실제 열린 FP1·FP2·FP3·퀄리파잉·레이스·스프린트 퀄리파잉·스프린트 레이스
 각 세션 종료 **3시간 후**부터 생성합니다. 예약 확인 시점에 따라 실행이 지연될 수 있습니다.
-자동 적용은 한국 시간 **금요일 00:00~월요일 23:59**에만 합니다. 재개 시 복원하는 cron은 UTC 기준
+자동 적용은 한국 시간 **금요일 00:00~월요일 23:59**에만 합니다. GitHub에 등록한 cron은 UTC 기준
 `7,22,37,52 15-23 * * 4`, `7,22,37,52 * * * 5,6,0`, `7,22,37,52 0-14 * * 1` 세 개입니다(`.github/report-pause.json`).
+재개는 로컬 PC가 담당하지 않습니다. GitHub 실행기가 `resume_at`을 먼저 확인하며, 11월 28일 00:00 KST 전에는
+자동 수집을 하지 않습니다. 재개 설정이 없거나 잘못돼도 수집하지 않습니다. 수동 요청은 이 자동 중지와 별개입니다.
 예약 확인(`tools/session_report_schedule.py`)은 저장된 `catalog/sessions.json`과 `weekend-*/sessions.json`,
 시도 기록만 읽고 외부 API를 호출하지 않습니다. 종료 3~4시간 사이이고 아직 자동 시도하지 않은 세션만
 `sessions` 목록으로 넘기며, 수집 단계는 그 세션만 조회하고 다른 세션은 기존 스냅샷을 유지합니다.
@@ -24,6 +26,20 @@
 세션이 없는 날에는 갱신하지 않습니다. 동일한 데이터는 조회 시각이 바뀌어도
 HTML을 재생성하지 않고, 누적·올해 HTML 갱신·업로드·커밋·검토도 건너뜁니다.
 수동 실행은 사용자의 명시적인 요청에 사용합니다.
+
+## 클라우드에서 관리하기
+
+1. 코드·작업 규칙·HTML·저장된 일정·자동 생성 시도 기록은 `ckdtjs0911-glitch/Seony_F1`에서 관리합니다.
+2. 자동 생성은 GitHub Actions가 실행하므로 사용자의 PC와 Codex 앱이 꺼져 있어도 동작합니다. GitHub 예약 실행은 지연될 수 있으며, 저장된 일정이 없는 세션은 자동으로 탐색하지 않습니다.
+3. 새 보고서가 저장되면 실행 요약에 올해·누적 보고서와 HTML 폴더 링크가 나타납니다. 변경이 없을 때는 보고서 링크 전달 작업도 건너뜁니다.
+4. Claude는 저장소의 `CLAUDE_CODE_OAUTH_TOKEN` 인증을 사용합니다. 로컬 로그인과 별개이며 설정 여부·실행 성공을 확인하기 전에는 클라우드 첨삭 완료라고 표시하지 않습니다. FastF1 상세 데이터 인증 대기도 별도로 구분합니다.
+5. 클라우드 채팅은 `reports/CLOUD_HANDOVER.md`로 이어갑니다. GitHub 실행 결과가 이 로컬 채팅에 자동으로 첨부되는 기능은 구성하지 않았습니다. 중복 수집을 막기 위해 기존 로컬 생성 예약은 클라우드 전환 후 일시 중지합니다.
+
+[올해 보고서](https://htmlpreview.github.io/?https://github.com/ckdtjs0911-glitch/Seony_F1/blob/main/reports/current-year.html) ·
+[누적 보고서](https://htmlpreview.github.io/?https://github.com/ckdtjs0911-glitch/Seony_F1/blob/main/reports/index.html) ·
+[실행 기록](https://github.com/ckdtjs0911-glitch/Seony_F1/actions/workflows/weekend-report.yml)
+
+공개 HTML 링크는 main의 최신 버전을 표시하는 외부 미리보기 서비스입니다. 링크 제공만으로 화면 렌더링을 검증한 것은 아닙니다.
 
 GitHub → Actions → **F1 weekend reports** → **Run workflow**로 수동 실행할 수 있습니다.
 특정 주말을 수집하려면 `meeting`에 OpenF1 meeting_key를 입력합니다. 멕시코 2026은 `1298`입니다.
