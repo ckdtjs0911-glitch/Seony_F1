@@ -1,0 +1,59 @@
+{
+  "date": "2026-11-25",
+  "task": "Automatic report timing: 3 h after session end, KST Friday-Monday only, external data only at generation time",
+  "base_commit": "fd54a2f",
+  "editor": "Claude Code (interactive session; no nested Claude CLI call)",
+  "status": "completed",
+  "rules_applied": [
+    "Automatic generation once per session, 3-4 h after its end (was 1-2 h).",
+    "Automatic runs only Friday 00:00 - Monday 23:59 KST; Tuesday-Thursday excluded; explicit manual runs are not limited by weekday.",
+    "An explicit actual end (actual_date_end, or a later end found in metadata fetched at generation time) beats the scheduled date_end.",
+    "Schedule check reads only reports/catalog/sessions.json, reports/weekend-*/sessions.json and the attempt record; zero external calls.",
+    "Collector fetches session metadata plus data for the gate-selected sessions only; other sessions keep cached snapshots. Manual runs keep full collection.",
+    "First automatic attempt per session recorded in reports/catalog/report-attempts.json before any request; started, auth_restricted, missing, failed and not_published are not completed and are not retried automatically; retries are manual.",
+    "If the fetched metadata shows a later end, no data is collected; deferred_end_later with the later end is recorded and the gate waits for end + 3 h.",
+    "State-only commit of the attempt record when no report is committed (unchanged, 401, missing, failure, deferred); no report regeneration, Claude review or delivery. Collected data that was not committed is recorded as not_published.",
+    "2026-11-28 00:00 KST resume kept; weekend-report.yml schedule stays inactive; restore crons listed in .github/report-pause.json as three UTC entries (Thu 15-23, Fri-Sun all day, Mon 0-14); backfill schedule not restored.",
+    "No automatic 2 h / 24 h correction (kept)."
+  ],
+  "files": {
+    "code": ["tools/session_report_schedule.py", "tools/report_attempts.py (new)", "tools/weekend_report.py", "tools/report_video.py", "tools/fastf1_source.py"],
+    "workflow_and_config": [".github/workflows/weekend-report.yml", ".github/report-pause.json"],
+    "docs": ["AGENTS.md", "CLAUDE.md", "README.md", "reports/AUTOMATION.md"],
+    "tests": ["tools/test_session_report_schedule.py"]
+  },
+  "not_changed": "Raw OpenF1 JSON, media, map geometry, secrets, app automation files and existing report HTML. The report methodology sentence about retries was updated in the generator only; existing HTML was not regenerated for this policy change.",
+  "tests": {
+    "new_or_rewritten": [
+      "3 h boundaries: 2:59 not due, 3:00 and 3:59 due, 4:00 not due",
+      "KST Fri 00:00 (Thu 15:00 UTC) and Mon 23:59 (Mon 14:59 UTC) included; Thu 23:59, Tue 00:00 and Wednesday excluded",
+      "actual_date_end beats date_end; recorded later end delays the gate",
+      "cancelled and unsupported sessions excluded",
+      "any recorded attempt status (except deferred) and processed snapshots block re-querying",
+      "local catalog merge and zero network calls in the gate, including outside Friday-Monday and in main()",
+      "collector fetches only target sessions and keeps other snapshots byte-identical; manual collect unchanged",
+      "unchanged target: attempt state saved, no render, HTML kept",
+      "401 and missing recorded as not completed; crash keeps 'started'",
+      "later actual end: no data fetch, deferred record, no render or publication",
+      "video and FastF1 steps process only --sessions keys",
+      "state merge keeps newest entries and downgrades uncommitted collected data to not_published"
+    ],
+    "result": "19 related modules: 92 tests run, 89 passed, 3 errors.",
+    "pre_existing_errors": "test_race_starting_tyres (cp949 decode) and test_backfill / test_retention (Windows SQLite temp-file lock, WinError 32); the latter two reproduced on a clean HEAD worktree. Not fixed (out of scope).",
+    "manual_check": "Gate on the real local catalog at the current time: run=false with no network use. Simulated time Qatar race 11428 end + 3 h 10 min (Monday KST): only meeting 1301 / session 11428 selected."
+  },
+  "codex_review": {
+    "working_tree_review": [
+      {"finding": "Deferred-only run on a weekend without HTML rendered and published a waiting-only report", "action": "applied: automatic runs without collected target data are state-only"},
+      {"finding": "Video and FastF1 steps used snapshot age, not the selected sessions", "action": "applied: --sessions filter passed from the gate"}
+    ],
+    "docs_and_workflow_task_review": [
+      {"finding": "Collected data discarded on partial failure was recorded as completed", "action": "applied: not_published downgrade in the state-only step"},
+      {"finding": "Failed report push left a local commit before the state commit", "action": "applied: reset to origin before saving state; one rebase retry on push"},
+      {"finding": "Merge let older local entries overwrite newer remote ones", "action": "applied: newest updated_at wins per session"},
+      {"finding": "Docs did not describe partial failure", "action": "applied in reports/AUTOMATION.md"},
+      {"finding": "Collector still fetches the meeting's session list; supplementary steps could see failed keys", "action": "not applied: metadata fetch at generation time is part of the requested rule, and supplementary steps run only when collection fully succeeded"}
+    ]
+  },
+  "not_verified": "The GitHub Actions workflow was not executed (schedule inactive until 2026-11-28); YAML was not machine-validated locally (no YAML parser installed)."
+}

@@ -142,9 +142,11 @@ def fastf1_sources(snapshot):
     return entries+[library]
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--snapshot',type=Path);parser.add_argument('--root',type=Path,default=ROOT/'reports');parser.add_argument('--force',action='store_true');parser.add_argument('--timing-only',action='store_true');parser.add_argument('--authenticated',action='store_true',help='Use operator-configured F1 account credentials for detailed timing; never put credentials in command arguments');args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--snapshot',type=Path);parser.add_argument('--root',type=Path,default=ROOT/'reports');parser.add_argument('--force',action='store_true');parser.add_argument('--timing-only',action='store_true');parser.add_argument('--authenticated',action='store_true',help='Use operator-configured F1 account credentials for detailed timing; never put credentials in command arguments');parser.add_argument('--sessions',default='',help='Comma-separated session keys selected by the automatic gate');args=parser.parse_args()
     import weekend_report as w
     paths=[args.snapshot] if args.snapshot else sorted(args.root.glob('weekend-*/data/*.json'))
+    selected={x.strip() for x in args.sessions.split(',') if x.strip()}
+    if selected:paths=[p for p in paths if p.stem in selected]
     for path in paths:
         snapshot=json.loads(path.read_text(encoding='utf-8'));s=snapshot.get('session',{})
         if s.get('session_name') not in CODES or not snapshot.get('data'):continue

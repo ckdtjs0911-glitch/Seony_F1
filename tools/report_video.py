@@ -334,9 +334,13 @@ def main():
     parser.add_argument("--snapshot", type=Path)
     parser.add_argument("--root", type=Path, default=ROOT / "reports")
     parser.add_argument("--offline", action="store_true")
+    parser.add_argument("--sessions", default="", help="Comma-separated session keys selected by the automatic gate")
     args = parser.parse_args()
     import weekend_report
     paths = [args.snapshot] if args.snapshot else sorted(args.root.glob("weekend-*/data/*.json"))
+    selected = {x.strip() for x in args.sessions.split(",") if x.strip()}
+    if selected:
+        paths = [p for p in paths if p.stem in selected]
     for path in paths:
         snapshot = json.loads(path.read_text(encoding="utf-8"))
         if snapshot.get('session',{}).get('session_name')=='Qualifying':

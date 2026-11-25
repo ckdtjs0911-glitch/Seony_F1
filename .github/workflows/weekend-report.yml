@@ -2,7 +2,11 @@ name: F1 weekend reports
 
 on:
   # Scheduled reports paused until 2026-11-28 00:00 Asia/Seoul.
-  # Resume cron: 7,22,37,52 * * * *
+  # Resume crons (UTC; together they cover Friday 00:00 - Monday 23:59 KST only):
+  #   7,22,37,52 15-23 * * 4   (Thursday UTC = Friday KST)
+  #   7,22,37,52 * * * 5,6,0   (Friday-Sunday UTC)
+  #   7,22,37,52 0-14 * * 1    (Monday UTC = Monday KST)
+  # The gate reads only local files; external APIs are called only for sessions it lists.
   workflow_dispatch:
     inputs:
       meeting:
@@ -29,13 +33,11 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install requests==2.32.4
-      - name: Check for a completed session needing a report
+      - name: Check local schedule for a session 3-4 hours after its end (no API calls)
         id: session_gate
         env:
           EVENT_NAME: ${{ github.event_name }}
           MEETING: ${{ inputs.meeting }}
-          OPENF1_CLIENT_ID: ${{ secrets.OPENF1_CLIENT_ID }}
-          OPENF1_CLIENT_SECRET: ${{ secrets.OPENF1_CLIENT_SECRET }}
         run: |
           args=()
           if [ "$EVENT_NAME" = workflow_dispatch ]; then
@@ -49,11 +51,12 @@ jobs:
       - name: Verify report generation and failure handling
         if: steps.session_gate.outputs.run == 'true'
         run: python -m unittest discover -s tools -p 'test_*.py'
-      - name: Collect five sessions and build report
+      - name: Collect the listed sessions (all sessions on manual runs) and build report
         id: collection
         if: steps.session_gate.outputs.run == 'true'
         env:
           MEETING: ${{ steps.session_gate.outputs.meeting }}
+          SESSIONS: ${{ steps.session_gate.outputs.sessions }}
           OPENF1_CLIENT_ID: ${{ secrets.OPENF1_CLIENT_ID }}
           OPENF1_CLIENT_SECRET: ${{ secrets.OPENF1_CLIENT_SECRET }}
         run: |
@@ -65,6 +68,13 @@ jobs:
             fi
             args+=(--meeting "$MEETING")
           fi
+          if [ -n "$SESSIONS" ]; then
+            if ! [[ "$SESSIONS" =~ ^[0-9]+(,[0-9]+)*$ ]]; then
+              echo 'sessions must be comma-separated numeric session keys'
+              exit 1
+            fi
+            args+=(--sessions "$SESSIONS")
+          fi
           python tools/weekend_report.py --defer-auth --output-root reports "${args[@]}"
       - name: Install video renderer
         if: steps.collection.outputs.collected == 'true'
@@ -75,9 +85,10 @@ jobs:
       - name: Collect race telemetry and qualifying position replays
         if: steps.collection.outputs.collected == 'true'
         env:
+          SESSIONS: ${{ steps.session_gate.outputs.sessions }}
           OPENF1_CLIENT_ID: ${{ secrets.OPENF1_CLIENT_ID }}
           OPENF1_CLIENT_SECRET: ${{ secrets.OPENF1_CLIENT_SECRET }}
-        run: python tools/report_video.py --root reports
+        run: python tools/report_video.py --root reports --sessions "$SESSIONS"
       - name: Install pinned FastF1 source
         if: steps.collection.outputs.collected == 'true'
         run: |
@@ -85,7 +96,9 @@ jobs:
           python -m pip install ./vendor/Fast-F1
       - name: Collect FastF1 supplementary timing and telemetry
         if: steps.collection.outputs.collected == 'true'
-        run: python tools/fastf1_source.py --root reports
+        env:
+          SESSIONS: ${{ steps.session_gate.outputs.sessions }}
+        run: python tools/fastf1_source.py --root reports --sessions "$SESSIONS"
       - name: Update cumulative year, Grand Prix and session archive
         if: steps.collection.outputs.collected == 'true'
         run: python tools/build_archive.py
@@ -109,6 +122,29 @@ jobs:
             git push
           fi
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Save automatic attempt state only (no report update, review or delivery)
+        # Unchanged data, HTTP 401, missing data or a failed run must still keep the
+        # attempt so the next scheduled check does not query the same session again.
+        # Collected data that is not committed here is marked not_published (not completed).
+        if: always() && steps.session_gate.outputs.sessions != '' && steps.report_commit.outcome != 'success'
+        env:
+          SESSIONS: ${{ steps.session_gate.outputs.sessions }}
+        run: |
+          state=reports/catalog/report-attempts.json
+          [ -f "$state" ] || exit 0
+          cp "$state" "$RUNNER_TEMP/attempts-ours.json"
+          git fetch -q origin "$GITHUB_REF_NAME"
+          git reset -q --hard "origin/$GITHUB_REF_NAME"
+          git clean -qfd -- reports
+          git show "HEAD:$state" > "$RUNNER_TEMP/attempts-base.json" 2>/dev/null || echo '{}' > "$RUNNER_TEMP/attempts-base.json"
+          python tools/report_attempts.py --merge "$RUNNER_TEMP/attempts-base.json" "$RUNNER_TEMP/attempts-ours.json" --unpublished "$SESSIONS" --output "$state"
+          git add -- "$state"
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'Record F1 automatic report attempts'
+            git push || { git pull -q --rebase origin "$GITHUB_REF_NAME" && git push; }
+          fi
   claude-review:
     needs: report
     if: needs.report.outputs.generated == 'true'

@@ -31,8 +31,8 @@ git clone --recurse-submodules https://github.com/ckdtjs0911-glitch/Seony_F1.git
 
 **프랙티스 1·2·3 + 퀄리파잉 + 레이스 + 스프린트 세션**, 모든 선수의 결과와 랩·타이어 데이터를
 수집해 HTML 보고서를 생성합니다. [자동 실행과 사용 방법](reports/AUTOMATION.md)을 참고하세요.
-GitHub Actions는 세션 종료 여부를 15분마다 확인하고, 각 세션의 예정 종료 1시간 후부터
-보고서와 원본 스냅샷을 저장합니다. 세션이 없는 날과 데이터에 변경이 없을 때는 보고서를 갱신하지 않습니다.
+GitHub Actions는 한국 시간 금~월에만 저장된 일정을 확인하고(외부 API 호출 없음), 각 세션 종료 3시간 후
+한 번만 해당 세션 자료를 조회해 보고서와 원본 스냅샷을 저장합니다. 실패 재시도는 수동 실행으로 합니다. 세션이 없는 날과 데이터에 변경이 없을 때는 보고서를 갱신하지 않습니다.
 
 **OpenF1** is a free and open-source API that offers real-time and historical Formula 1 data.<br />
 Whether you're a developer, data analyst, or F1 enthusiast, OpenF1 provides comprehensive

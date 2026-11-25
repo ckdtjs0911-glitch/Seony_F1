@@ -2,8 +2,13 @@
   "resume_at": "2026-11-28T00:00:00+09:00",
   "timezone": "Asia/Seoul",
   "workflow_schedules": {
-    "weekend-report.yml": "7,22,37,52 * * * *"
+    "weekend-report.yml": [
+      "7,22,37,52 15-23 * * 4",
+      "7,22,37,52 * * * 5,6,0",
+      "7,22,37,52 0-14 * * 1"
+    ]
   },
+  "schedule_note": "UTC crons restored as a list on resume; together they cover Friday 00:00 - Monday 23:59 KST. backfill-reports.yml is not restored.",
   "catch_up_on_resume": {
     "meeting_key": 1300,
     "sessions": [11416, 11420],

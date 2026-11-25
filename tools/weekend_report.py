@@ -19,6 +19,7 @@ from race_overtakes import render_overtakes
 from report_video import render_section as render_video_section
 from qualifying_replay import render_qualifying
 from fastf1_source import render_source as render_fastf1_source
+import report_attempts
 import report_sources
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -30,6 +31,7 @@ ENDPOINTS = ("drivers", "session_result", "laps", "stints", "pit", "race_control
 RETRY_STATUS = (429, 500, 502, 503, 504)
 ROOT = Path(__file__).resolve().parents[1]
 ENCODING = "utf-8"
+REPORT_DELAY = timedelta(hours=3)
 
 
 def stamp(value):
@@ -503,7 +505,7 @@ METHODOLOGY = (
     "피트 진입 수는 관측된 랩의 시간 범위 안에서만 집계하며, 타이어 교체 횟수나 실제 정차 시간을 뜻하지 않습니다.",
     "공식 완료 랩(session_result)과 관측 랩 기록 수(laps)는 따로 집계합니다. 누락된 값은 0초나 0랩으로 바꾸지 않습니다.",
     "스프린트 주말처럼 프랙티스 2·3이 열리지 않으면 '일정 없음'으로 표시합니다. 스프린트 퀄리파잉과 스프린트 레이스도 실제 열린 세션에 맞춰 포함합니다.",
-    "원본 데이터와 수집 시각은 세션별 JSON 스냅샷에 보존합니다. 라이브 세션 중 공개 API 접근이 막히면 기존 스냅샷을 유지하고 다음 예약 실행에서 다시 조회합니다.",
+    "원본 데이터와 수집 시각은 세션별 JSON 스냅샷에 보존합니다. 자동 생성은 세션 종료 3시간 후 한 번만 조회하며, 접근이 막히거나 자료가 없으면 기존 스냅샷을 유지하고 자동으로 다시 조회하지 않습니다.",
 )
 
 CHART_CSS = ROOT / "tools" / "report_charts.css"
@@ -651,14 +653,27 @@ def render(snapshots, output, now=None, starting_tyre_summaries=None):
     output.write_text(page, encoding=ENCODING)
 
 
-def collect(meeting_key=None, output_root=None):
-    now = datetime.now(timezone.utc)
+def session_end(session):
+    """An explicit actual end beats the scheduled end."""
+    return stamp(session.get("actual_date_end") or session["date_end"])
+
+
+def collect(meeting_key=None, output_root=None, targets=None, now=None):
+    """Collect a weekend. ``targets`` (automatic runs) limits API calls to those
+    session keys; other sessions keep their cached snapshots."""
+    now = now or datetime.now(timezone.utc)
+    reports = output_root or ROOT / "reports"
+    if targets is not None:
+        targets = {int(key) for key in targets}
+        for key in sorted(targets):
+            # Record before any request so a crash cannot cause a repeated automatic query.
+            report_attempts.record(reports, {"session_key": key, "meeting_key": meeting_key}, "started", now)
     try:
         sessions = fetch(
             "sessions", {"meeting_key": meeting_key} if meeting_key else {"year": now.year}
         )
     except requests.HTTPError as exc:
-        catalog = (output_root or ROOT / "reports") / "catalog" / "sessions.json"
+        catalog = reports / "catalog" / "sessions.json"
         if exc.response is None or exc.response.status_code != 401 or not catalog.exists():
             raise
         sessions = load_json(catalog)
@@ -673,10 +688,11 @@ def collect(meeting_key=None, output_root=None):
             raise ValueError("No started weekend available for the current year")
         meeting_key = max(past, key=lambda s: stamp(s["date_start"]))["meeting_key"]
     sessions = [s for s in sessions if s["meeting_key"] == meeting_key]
-    directory = (output_root or ROOT / "reports") / f"weekend-{meeting_key}"
+    directory = reports / f"weekend-{meeting_key}"
     save_json(directory / "sessions.json", sessions)
     snapshots, errors = [], []
     changed = not (directory / "weekend-report.html").exists()
+    fetched_any = False
     for name in SESSION_NAMES:
         candidates = [s for s in sessions if s["session_name"] == name]
         if not candidates:
@@ -694,16 +710,38 @@ def collect(meeting_key=None, output_root=None):
         if session.get("is_cancelled"):
             snapshots.append({"session": session, "status": "취소", "data": {}})
             continue
-        if now < stamp(session["date_end"]) + timedelta(hours=1):
+        end = session_end(session)
+        if targets is not None and session["session_key"] not in targets:
             snapshots.append(
                 previous
                 or {
                     "session": session,
-                    "status": "수집 대기 (세션 종료 1시간 후 시작)",
+                    "status": "수집 대기 (세션 종료 3시간 후 시작)"
+                    if now < end + REPORT_DELAY
+                    else "미수집 / 자동 대상 아님 (수동 요청 시 수집)",
                     "data": {},
                 }
             )
             continue
+        if now < end + REPORT_DELAY:
+            if targets is not None:
+                # The confirmed end is later than the schedule used by the gate.
+                report_attempts.record(reports, session, "deferred_end_later", now, actual_end=end)
+            snapshots.append(
+                previous
+                or {
+                    "session": session,
+                    "status": "수집 대기 (세션 종료 3시간 후 시작)",
+                    "data": {},
+                }
+            )
+            continue
+
+        def attempt(status, session=session):
+            if targets is not None:
+                report_attempts.record(reports, session, status, now)
+
+        attempt("started")
         try:
             data = {
                 endpoint: fetch(endpoint, {"session_key": session["session_key"]})
@@ -721,17 +759,25 @@ def collect(meeting_key=None, output_root=None):
                 "fetched_at": now.isoformat(),
                 "data": data,
             }
-            changed = changed or previous is None or previous.get("data") != data or previous.get("session") != session
+            new = previous is None or previous.get("data") != data or previous.get("session") != session
+            changed = changed or new
+            fetched_any = True
             save_json(path, snapshot)
+            attempt("collected" if new else "unchanged")
         except (requests.RequestException, ValueError) as exc:
             if isinstance(exc, requests.HTTPError) and exc.response is not None and exc.response.status_code == 401:
+                attempt("auth_restricted")
                 # Stop publication rather than labeling cached data as refreshed.
                 raise
+            attempt("missing" if isinstance(exc, ValueError) else "failed")
             error = f"{type(exc).__name__}: {exc}"
             errors.append(f"{name}: {error}")
             snapshot = dict(previous) if previous else {"session": session, "data": {}}
-            snapshot.update(status="갱신 실패 / 재시도 대기", error=error)
+            snapshot.update(status="갱신 실패 / 자동 재시도 안 함 (수동 요청 시 재수집)", error=error)
         snapshots.append(snapshot)
+    if targets is not None and not fetched_any:
+        # Automatic run without collected target data (deferred or failed): attempt state only.
+        changed = False
     if changed:
         render(snapshots, directory / "weekend-report.html", now)
     print(directory / "weekend-report.html")
@@ -764,7 +810,9 @@ def main():
     )
     parser.add_argument("--output-root", type=Path)
     parser.add_argument("--defer-auth", action="store_true",
-                        help="Preserve published reports and defer live-window HTTP 401 to next schedule")
+                        help="Preserve published reports on HTTP 401; no automatic retry (manual request only)")
+    parser.add_argument("--sessions", default="",
+                        help="Comma-separated session keys from the automatic gate; only these are fetched")
     parser.add_argument(
         "--offline",
         type=Path,
@@ -775,14 +823,17 @@ def main():
         if args.offline:
             render(load_offline(args.offline), args.offline / "weekend-report.html")
             return 0
-        result = collect(args.meeting, args.output_root)
+        targets = [int(x) for x in args.sessions.split(",") if x.strip()] or None
+        if targets and args.meeting is None:
+            raise ValueError("--sessions requires --meeting")
+        result = collect(args.meeting, args.output_root, targets)
         if args.defer_auth:
             write_collection_output(result == 0)
         return 0 if result == 2 else result
     except (requests.RequestException, ValueError) as exc:
         if args.defer_auth and isinstance(exc, requests.HTTPError) and exc.response is not None and exc.response.status_code == 401:
             write_collection_output(False)
-            message = "OpenF1 HTTP 401: collection deferred; published reports preserved. Retry on next schedule."
+            message = "OpenF1 HTTP 401: attempt recorded, published reports preserved. No automatic retry; request a manual run."
             print(message)
             import os
             if os.environ.get("GITHUB_STEP_SUMMARY"):
