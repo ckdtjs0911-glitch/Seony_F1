@@ -45,6 +45,13 @@ def build(root, since=None):
     since = max(since or first_year(), first_year())
     catalog_path = root / "catalog" / "sessions.json"
     sessions = report.load_json(catalog_path) if catalog_path.exists() else []
+    meetings_path = root / "catalog" / "meetings.json"
+    meetings = report.load_json(meetings_path) if meetings_path.exists() else []
+    testing_meetings = {
+        item["meeting_key"]
+        for item in meetings
+        if "testing" in (item.get("meeting_name") or "").casefold()
+    }
     snapshots = {}
     for path in sorted(root.glob("weekend-*/data/*.json")):
         value = report.load_json(path)
@@ -64,12 +71,13 @@ def build(root, since=None):
             country = COUNTRIES.get(
                 session.get("country_name"), session.get("country_name", "대회")
             )
-            gp = (
-                country
-                + " 그랑프리 · "
-                + session.get("circuit_short_name", session.get("location", ""))
-            )
-            label = report.LABELS.get(session["session_name"], session["session_name"])
+            testing = session["meeting_key"] in testing_meetings
+            event = f"{country} 프리시즌 테스트" if testing else f"{country} 그랑프리"
+            gp = event + " · " + session.get("circuit_short_name", session.get("location", ""))
+            name = session["session_name"]
+            label = report.LABELS.get(name, name)
+            if testing:
+                label = re.sub(r"^Day (\d+)$", r"\1일차", label)
             entry = {
                 "year": year,
                 "meeting": session["meeting_key"],
@@ -82,10 +90,18 @@ def build(root, since=None):
             snapshot = snapshots.get(session["session_key"])
             if snapshot:
                 path = Path(folder) / "report.html"
+                fetched = snapshot.get("fetched_at")
+                reference_time = report.stamp(fetched or session["date_end"])
                 report.render(
-                    [snapshot], path, starting_tyre_summaries=starting_tyre_summaries
+                    [snapshot],
+                    path,
+                    now=reference_time,
+                    starting_tyre_summaries=starting_tyre_summaries,
                 )
-                page = path.read_text(encoding="utf-8")
+                time_label = "데이터 수집 시각" if fetched else "세션 종료 시각"
+                page = path.read_text(encoding="utf-8").replace(
+                    "생성 시각 ", f"{time_label} ", 1
+                )
                 page = page.replace(
                     "<body>",
                     f'<body data-session-view="true" data-session-label="{report.esc(label)}">',
@@ -111,7 +127,7 @@ def build(root, since=None):
                     page = page.replace(uri, token)
                 entry["attachment_assets"] = sorted(asset_keys)
                 entry["payload"] = base64.b64encode(
-                    gzip.compress(page.encode("utf-8"))
+                    gzip.compress(page.encode("utf-8"), mtime=0)
                 ).decode()
                 entry["status"] = snapshot.get("status", "보고서 데이터 수집 완료")
             elif session.get("is_cancelled"):
@@ -130,10 +146,10 @@ body{margin:0;background:#0b1321;color:#edf4fc;font:16px/1.6 system-ui}header{pa
 function option(select,value,text){let o=document.createElement('option');o.value=value;o.textContent=text;select.append(o)}
 function fillGP(){gp.replaceChildren();const matches=entries.filter(x=>x.year===+year.value);const seen=new Set;for(const e of matches){if(!seen.has(e.meeting)){option(gp,e.meeting,e.gp);seen.add(e.meeting)}}gp.value=matches.filter(x=>x.payload).at(-1)?.meeting||matches.at(-1)?.meeting;fillSessions()}
 function fillSessions(){session.replaceChildren();for(const e of entries.filter(x=>x.year===+year.value&&x.meeting===+gp.value))option(session,e.key,`${e.session} · ${e.status}`);session.value=entries.filter(x=>x.meeting===+gp.value&&x.payload).at(-1)?.key||session.value;show()}
-async function show(){const token=++generation,e=entries.find(x=>x.key===+session.value);download.disabled=true;if(blobURL){URL.revokeObjectURL(blobURL);blobURL=null}frame.hidden=true;frame.srcdoc='';empty.textContent='';if(!e)return;document.getElementById('title').textContent=`${e.year} ${e.gp} · ${e.session}`;document.getElementById('status').textContent=`${e.status} · 세션 ${e.key}`;if(!e.payload){empty.textContent=e.status==='미수집 / 원본 수집 대기'?'아직 다운로드되지 않은 세션입니다. 수집 완료 후 보고서가 추가됩니다.':e.status;return}try{if(!window.DecompressionStream)throw Error('브라우저에서 gzip 해제를 지원하지 않습니다. 최신 Chrome 또는 Edge를 사용하세요.');const bytes=Uint8Array.from(atob(e.payload),c=>c.charCodeAt(0));const encoded=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();const text=encoded.replace(/__F1_ATTACHMENT_[a-f0-9]+__/g,key=>attachmentAssets[key]||key);if(token!==generation)return;frame.srcdoc=text;frame.hidden=false;blobURL=URL.createObjectURL(new Blob([text],{type:'text/html;charset=utf-8'}));download.disabled=false;download.onclick=()=>{const a=document.createElement('a');a.href=blobURL;a.download=`${e.year}-${e.meeting}-${e.key}.html`;a.click()}}catch(error){if(token===generation)empty.textContent=error.message}}
+async function show(){const token=++generation,e=entries.find(x=>x.key===+session.value);download.disabled=true;if(blobURL){URL.revokeObjectURL(blobURL);blobURL=null}frame.hidden=true;frame.srcdoc='';empty.textContent='';if(!e)return;document.getElementById('title').textContent=`${e.year} ${e.gp} · ${e.session}`;document.getElementById('status').textContent=`${e.status} · 세션 ${e.key}`;if(!e.payload){empty.textContent=e.status==='미수집 / 원본 수집 대기'?'보고서 데이터가 없습니다. 자동 수집은 세션 종료 3시간 후 한 번만 시도하며, 재수집은 수동 요청으로 진행합니다.':e.status;return}try{if(!window.DecompressionStream)throw Error('브라우저에서 gzip 해제를 지원하지 않습니다. 최신 Chrome 또는 Edge를 사용하세요.');const bytes=Uint8Array.from(atob(e.payload),c=>c.charCodeAt(0));const encoded=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();const text=encoded.replace(/__F1_ATTACHMENT_[a-f0-9]+__/g,key=>attachmentAssets[key]||key);if(token!==generation)return;frame.srcdoc=text;frame.hidden=false;blobURL=URL.createObjectURL(new Blob([text],{type:'text/html;charset=utf-8'}));download.disabled=false;download.onclick=()=>{const a=document.createElement('a');a.href=blobURL;a.download=`${e.year}-${e.meeting}-${e.key}.html`;a.click()}}catch(error){if(token===generation)empty.textContent=error.message}}
 for(const y of [...new Set(entries.map(x=>x.year))].sort((a,b)=>b-a))option(year,y,y);year.value=entries.filter(x=>x.payload).at(-1)?.year||year.value;year.onchange=fillGP;gp.onchange=fillSessions;session.onchange=show;fillGP();</script></body></html>"""
     page = template.replace("ARCHIVE_DATA", data).replace(
-        "ATTACHMENT_ASSETS", json.dumps(attachment_assets)
+        "ATTACHMENT_ASSETS", json.dumps(attachment_assets, sort_keys=True)
     )
     (root / "index.html").write_text(page, encoding="utf-8")
     metadata = [{k: v for k, v in entry.items() if k != "payload"} for entry in entries]
