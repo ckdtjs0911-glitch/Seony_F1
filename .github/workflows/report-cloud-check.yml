@@ -57,6 +57,25 @@ jobs:
           if claude --print --max-turns 1 --tools '' 'Reply with exactly CONNECTED.' > claude-connection.txt 2> claude-connection-error.txt; then
             echo 'Claude 실제 호출: 성공' >> "$GITHUB_STEP_SUMMARY"
           else
-            echo 'Claude 실제 호출: 실패. 인증·계정·사용 한도 확인이 필요합니다.' >> "$GITHUB_STEP_SUMMARY"
+            python - <<'PY'
+          import os
+          from pathlib import Path
+          detail = '\n'.join(Path(p).read_text(errors='replace') for p in ('claude-connection.txt', 'claude-connection-error.txt')).lower()
+          reason = '인증·계정·통신 오류 (원문에 인증 정보가 있을 수 있어 공개하지 않음)'
+          for needles, label in [
+              (('expired',), '인증 만료'),
+              (('invalid api key', 'invalid token', '401', 'authentication_error', 'not logged in'), '인증 거부'),
+              (('credit balance', 'usage limit', 'rate limit', '429'), '사용 한도 또는 크레딧'),
+              (('unknown option', 'requires an argument', 'no prompt', 'input must be provided'), 'CLI 인수 오류'),
+              (('403', 'permission denied'), '접근 권한 거부'),
+          ]:
+              if any(n in detail for n in needles):
+                  reason = label
+                  break
+          message = 'Claude 실제 호출: 실패 · ' + reason
+          print(message)
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as stream:
+              stream.write(message + '\n')
+          PY
             exit 1
           fi
