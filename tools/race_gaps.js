@@ -86,7 +86,13 @@
    let bottom=545;for(const a of group.slice().reverse()){a.ly=Math.min(a.ly,bottom);bottom=a.ly-23;}
    for(const a of group){const key='label'+a.d.number;a.ly=(eased.get(key)??a.ly)*.8+a.ly*.2;eased.set(key,a.ly);const lx=right?375:145;
     c.strokeStyle=a.d.color;c.lineWidth=1;c.beginPath();c.moveTo(a.x,a.y);c.lineTo(lx,a.ly);c.stroke();
-    c.textAlign=right?'left':'right';label(`P${a.pos} ${a.d.name} ${gap(a.g,a.pos===1)}`,lx,a.ly,'#edf4fc',17);c.textAlign='left';
+    const rank=`P${a.pos} `,name=a.d.name,interval=` ${gap(a.g,a.pos===1)}`;
+    c.font='17px system-ui';
+    const rankWidth=c.measureText(rank).width,nameWidth=c.measureText(name).width;
+    const start=right?lx:lx-rankWidth-nameWidth-c.measureText(interval).width;
+    label(rank,start,a.ly,'#edf4fc',17);
+    label(name,start+rankWidth,a.ly,a.d.color,17);
+    label(interval,start+rankWidth+nameWidth,a.ly,'#edf4fc',17);
    }
   }
   label('원형 눈금: 큰 시간차는 압축 · 실제 서킷 위치와 별개',18,572,'#b7c9df',16);
