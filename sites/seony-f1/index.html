@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>F1 누적 보고서 · Seony F1</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#0b1321;color:#edf4fc}body{margin:0}header{display:flex;flex-wrap:wrap;gap:1rem;padding:1rem;align-items:center;border-bottom:1px solid #33465f}a{color:#6deac9}p{padding:0 1rem}iframe{display:block;border:0;width:100%;height:calc(100dvh - 4rem)}[hidden]{display:none}
+</style>
+<header><a href="./">Seony F1</a><strong>누적 보고서</strong><a id="download" download="seony-f1-archive.html" hidden>HTML 다운로드</a></header>
+<p id="status" role="status">GitHub에서 최신 누적 보고서를 불러오는 중입니다.</p>
+<iframe id="archive" title="F1 누적 보고서" sandbox="allow-scripts allow-modals allow-downloads" hidden></iframe>
+<script type="module">
+const status = document.getElementById('status');
+const archive = document.getElementById('archive');
+const download = document.getElementById('download');
+try {
+  const response = await fetch('https://raw.githubusercontent.com/ckdtjs0911-glitch/Seony_F1/main/reports/index.html', { cache: 'no-cache' });
+  if (!response.ok) throw new Error('Archive unavailable');
+  const html = await response.text();
+  archive.srcdoc = html;
+  archive.hidden = false;
+  download.href = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+  download.hidden = false;
+  status.hidden = true;
+} catch {
+  status.textContent = '누적 보고서를 불러오지 못했습니다. 잠시 후 페이지를 새로고침해 주세요.';
+}
+</script>
+</html>
