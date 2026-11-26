@@ -59,6 +59,10 @@ def build(root, since=None):
             snapshots[value["session"]["session_key"]] = value
     known = {s["session_key"]: s for s in sessions}
     known.update({key: s["session"] for key, s in snapshots.items()})
+    by_meeting = {}
+    for session in known.values():
+        by_meeting.setdefault(session["meeting_key"], []).append(session)
+    allowed = {key: report.weekend_session_names(rows) for key, rows in by_meeting.items()}
     starting_tyre_summaries = summaries_for(snapshots.values(), known.values())
     now = datetime.now(timezone.utc)
     entries = []
@@ -68,13 +72,15 @@ def build(root, since=None):
             year = session.get("year") or report.stamp(session["date_start"]).year
             if not since <= year <= now.year:
                 continue
+            name = session["session_name"]
+            if name in report.SESSION_NAMES and name not in allowed[session["meeting_key"]]:
+                continue
             country = COUNTRIES.get(
                 session.get("country_name"), session.get("country_name", "대회")
             )
             testing = session["meeting_key"] in testing_meetings
             event = f"{country} 프리시즌 테스트" if testing else f"{country} 그랑프리"
             gp = event + " · " + session.get("circuit_short_name", session.get("location", ""))
-            name = session["session_name"]
             label = report.LABELS.get(name, name)
             if testing:
                 label = re.sub(r"^Day (\d+)$", r"\1일차", label)

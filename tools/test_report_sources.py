@@ -95,7 +95,7 @@ class ModuleSourceTests(unittest.TestCase):
     def test_qualifying_replay_keeps_completed_lap_caveat(self):
         with tempfile.TemporaryDirectory() as folder:
             directory = Path(folder)
-            value = {"session_key": 1, "complete": True, "fetched_at": "2025-01-01T14:00:00+00:00", "pit_reference": PIT_REFERENCE}
+            value = {"session_key": 1, "complete": True, "fetched_at": "2025-01-01T14:00:00+00:00", "pit_reference": PIT_REFERENCE, "drivers": [{"locations": [[0, 1, 2]]}]}
             (directory / "1-qualifying.json.gz").write_bytes(gzip.compress(json.dumps(value).encode()))
             item = snapshot("Qualifying")
             body = render_qualifying(item, directory)

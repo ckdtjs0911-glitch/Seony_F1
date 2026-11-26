@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import report_attempts
-from weekend_report import ROOT, SESSION_NAMES, load_json, stamp
+from weekend_report import ROOT, load_json, stamp, weekend_session_names
 
 KST = timezone(timedelta(hours=9))
 DELAY = timedelta(hours=3)
@@ -78,9 +78,13 @@ def due_sessions(sessions, reports, now):
     if not automatic_day(now):
         return None, []
     attempts = report_attempts.load(reports)
+    by_meeting = {}
+    for session in sessions:
+        by_meeting.setdefault(session.get("meeting_key"), []).append(session)
+    allowed = {key: weekend_session_names(rows) for key, rows in by_meeting.items()}
     due = []
     for session in sessions:
-        if session.get("session_name") not in SESSION_NAMES or session.get("is_cancelled"):
+        if session.get("session_name") not in allowed[session.get("meeting_key")] or session.get("is_cancelled"):
             continue
         attempt = attempts.get(str(session.get("session_key")))
         if attempt and attempt.get("status") != "deferred_end_later":

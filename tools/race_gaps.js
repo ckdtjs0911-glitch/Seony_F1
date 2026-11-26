@@ -10,6 +10,50 @@
  const label=(s,x,y,color='#edf4fc',size=17)=>{c.fillStyle=color;c.font=`${size}px system-ui`;c.fillText(s,x,y);};
  const gap=(r,leader)=>leader?'선두':typeof r?.[1]==='number'&&r[1]>=0?`+${r[1].toFixed(3)} s`:typeof r?.[1]==='string'?r[1]:'—';
  const eased=new Map(),easedX=new Map();
+ const timing=JSON.parse($('gap-timing-data').textContent),table=$('gap-timing-body');
+ const compounds={SOFT:'S',MEDIUM:'M',HARD:'H',INTERMEDIATE:'I',WET:'W'};
+ const completedLaps=new Map(Object.entries(timing).map(([number,laps])=>[Number(number),laps.filter(r=>r[2]>0).map(r=>[r[0]+r[2]*1000,r]).sort((a,b)=>a[0]-b[0])]));
+ let lastTable;
+ function updateTiming(rows,elapsed){
+  const t=Math.round(data.start*1000+elapsed);
+  const current=rows.map(({d,pos,g})=>{
+   const laps=timing[d.number]||[],lap=at(laps,t)?.r;
+   const completed=at(completedLaps.get(d.number)||[],t)?.r[1];
+   const pit=(d.pit_laps||[]).some(([start,end])=>start<=elapsed&&elapsed<=end);
+   return {d:[d.name,d.color],pos,interval:gap(g,pos===1),lead:gap([0,g?.[2]],false),lap:lap?.[1],compound:compounds[lap?.[5]],completed,pit};
+  });
+  const signature=JSON.stringify(current);
+  if(signature===lastTable)return;
+  lastTable=signature;
+  if(!current.length){
+   const row=table.insertRow();
+   const cell=row.insertCell();cell.colSpan=5;cell.textContent='타이밍 기록을 기다리는 구간입니다.';
+   table.replaceChildren(row);return;
+  }
+  const fragment=document.createDocumentFragment();
+  for(const row of current){
+   const tr=document.createElement('tr');fragment.append(tr);
+   const cell=(text)=>{const td=tr.insertCell();td.textContent=text;return td;};
+   const detail=(td,text)=>{const small=document.createElement('small');small.textContent=text;td.append(small);};
+   const driver=cell(`${row.pos}  ${row.d[0]}`);driver.className='gap-team';driver.style.borderColor=row.d[1];
+   const interval=cell(row.interval);if(row.pos!==1&&row.lead!=='—')detail(interval,`선두 ${row.lead}`);
+   const seconds=row.completed?.[2];
+   const lapTime=cell(seconds>0?`${Math.floor(seconds/60)}:${(seconds%60).toFixed(3).padStart(6,'0')}`:'—');
+   if(row.completed)detail(lapTime,`랩 ${row.completed[1]}`);
+   const mini=cell('');
+   for(const [index,segments] of (row.completed?.[4]||[]).entries()){
+    if(!segments?.length)continue;
+    const group=document.createElement('span');group.className='gap-mini';
+    const sector=row.completed[3][index];
+    group.title=`섹터 ${index+1}${typeof sector==='number'?`: ${sector.toFixed(3)}초`:''}`;
+    for(const segment of segments){const mark=document.createElement('i');if(segment>0)mark.className='recorded';group.append(mark);}
+    mini.append(group);
+   }
+   if(!mini.childElementCount)mini.textContent='—';
+   const tyre=cell(row.compound||'—');if(row.lap)detail(tyre,`진행 랩 ${row.lap}${row.pit?' · PIT LAP':''}`);
+  }
+  table.replaceChildren(fragment);
+ }
  function draw(){
   c.fillStyle='#0b1321';c.fillRect(0,0,1280,600);label('서킷 위치 · 시간별 재생',30,38,'#6deac9',24);label('원형 시간 간격 · 앞차와 간격(s)',540,38,'#6deac9',24);
   if(track.length){c.beginPath();track.forEach((r,i)=>{const p=point(r);i?c.lineTo(...p):c.moveTo(...p);});c.closePath();c.strokeStyle='#4c5b70';c.lineWidth=9;c.stroke();}
@@ -20,15 +64,17 @@
   for(const d of data.drivers){
    const pos=at(d.positions,now*1000)?.r[1],g=at(d.gaps,now*1000,10000)?.r,loc=at(d.locations,now*1000,2000);
    if(loc){let r=loc.r.slice(1),next=loc.next;if(next&&next[0]-loc.r[0]<=2000){const f=(now*1000-loc.r[0])/(next[0]-loc.r[0]);r=r.map((v,i)=>v+(next[i+1]-v)*f);}const [x,y]=point(r);const pit=(d.pit_laps||[]).some(p=>p[0]<=now*1000&&now*1000<=p[1]);c.beginPath();c.arc(x,y,pit?7:5,0,Math.PI*2);c.fillStyle=pit?'#ffd65c':d.color;c.fill();label(d.name+(pit?' PIT LAP':''),x+7,y-6,pit?'#ffd65c':d.color,12);}
-   if(pos&&(g||pos===1))active.push({d,pos,g:pos===1?[now*1000,null,0]:g});
+   if(pos)active.push({d,pos,g:pos===1?[now*1000,null,0]:g});
   }
   active.sort((a,b)=>a.pos-b.pos||a.d.number-b.d.number);
-  const maxGap=Math.max(10,...active.map(x=>typeof x.g[2]==='number'?Math.max(0,x.g[2]):0));
+  updateTiming(active,now*1000);
+  const withGap=active.filter(x=>x.g);
+  const maxGap=Math.max(10,...withGap.map(x=>typeof x.g[2]==='number'?Math.max(0,x.g[2]):0));
   const cx=900,cy=305,radius=155;
   c.strokeStyle='#4c5b70';c.lineWidth=8;c.beginPath();c.arc(cx,cy,radius,0,Math.PI*2);c.stroke();
   label('선두 기준 시간차',cx-67,cy-12,'#b7c9df',16);label(`0–${maxGap.toFixed(1)} s`,cx-58,cy+22,'#edf4fc',21);
   const annotations=[],lapped=[];
-  for(const {d,pos,g} of active){
+  for(const {d,pos,g} of withGap){
    if(typeof g[2]!=='number'||g[2]<0){lapped.push(`${d.name} ${g[2]??'—'}`);continue;}
    const target=-Math.PI/2+Math.log1p(g[2])/Math.log1p(maxGap)*Math.PI*1.8;
    const angle=(easedX.get(d.number)??target)*.85+target*.15;easedX.set(d.number,angle);

@@ -34,6 +34,15 @@ ENCODING = "utf-8"
 REPORT_DELAY = timedelta(hours=3)
 
 
+SPRINT_SESSIONS = {"Sprint", "Sprint Qualifying"}
+
+
+def weekend_session_names(sessions):
+    sprint_weekend = any(session.get("session_name") in SPRINT_SESSIONS for session in sessions)
+    excluded = {"Practice 2", "Practice 3"} if sprint_weekend else SPRINT_SESSIONS
+    return tuple(name for name in SESSION_NAMES if name not in excluded)
+
+
 def stamp(value):
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
@@ -504,7 +513,7 @@ METHODOLOGY = (
     "랩 중앙값과 스틴트 중앙값은 1랩, 피트 아웃 랩, 피트 진입 랩, 삭제 확인 랩, 시간이 누락된 랩을 제외하고 계산합니다. 연료량·트래픽·SC·VSC·트랙 변화는 보정하지 않으므로 순수 페이스나 롱런 우열을 단정할 수 없습니다. 스틴트별 표본 수를 함께 표시합니다.",
     "피트 진입 수는 관측된 랩의 시간 범위 안에서만 집계하며, 타이어 교체 횟수나 실제 정차 시간을 뜻하지 않습니다.",
     "공식 완료 랩(session_result)과 관측 랩 기록 수(laps)는 따로 집계합니다. 누락된 값은 0초나 0랩으로 바꾸지 않습니다.",
-    "스프린트 주말처럼 프랙티스 2·3이 열리지 않으면 '일정 없음'으로 표시합니다. 스프린트 퀄리파잉과 스프린트 레이스도 실제 열린 세션에 맞춰 포함합니다.",
+    "일반 주말에는 프랙티스 1·2·3을, 스프린트 주말에는 프랙티스 1과 스프린트 퀄리파잉·스프린트 레이스를 표시합니다.",
     "원본 데이터와 수집 시각은 세션별 JSON 스냅샷에 보존합니다. 자동 생성은 세션 종료 3시간 후 한 번만 조회하며, 접근이 막히거나 자료가 없으면 기존 스냅샷을 유지하고 자동으로 다시 조회하지 않습니다.",
 )
 
@@ -542,7 +551,7 @@ def item_sources(item, events_html, video_html, qualifying_html, fastf1_html, ap
     if 'id="driver-replay"' in video_html:
         found.append(("두 선수 선택 · 차량 데이터 비교", player_sources(item, media)))
     if 'class="qualifying-replay"' in qualifying_html:
-        found.append(("시간별 퀄리파잉 위치 · Q1/Q2/Q3", qualifying_sources(item)))
+        found.append(("시간별 서킷 위치 · 유효 랩 · 타이어", qualifying_sources(item)))
     if fastf1_html:
         found.append(("FastF1 보조 데이터", fastf1_sources(item)))
     if appendix.get("pit"):
@@ -636,7 +645,8 @@ def render(snapshots, output, now=None, starting_tyre_summaries=None):
         only = LABELS.get(snapshots[0]["session"]["session_name"], snapshots[0]["session"]["session_name"])
         heading, coverage = f"{only} 보고서", f"{only} 단일 세션 보고서"
     else:
-        heading, coverage = "주말 전체 선수 보고서", "프랙티스 1·2·3 + 퀄리파잉 + 레이스 · 스프린트 주말 세션 포함"
+        heading = "주말 전체 선수 보고서"
+        coverage = " · ".join(LABELS.get(item["session"]["session_name"], item["session"]["session_name"]) for item in snapshots)
     safe_json = json.dumps(chart_data, ensure_ascii=False).replace("</", "<\\/")
     methodology = "".join(f"<li>{text}</li>" for text in METHODOLOGY)
     chart_css = CHART_CSS.read_text(encoding=ENCODING)
@@ -693,7 +703,7 @@ def collect(meeting_key=None, output_root=None, targets=None, now=None):
     snapshots, errors = [], []
     changed = not (directory / "weekend-report.html").exists()
     fetched_any = False
-    for name in SESSION_NAMES:
+    for name in weekend_session_names(sessions):
         candidates = [s for s in sessions if s["session_name"] == name]
         if not candidates:
             snapshots.append(
@@ -792,12 +802,15 @@ def load_offline(directory):
     if not snapshots:
         raise ValueError("No session snapshots found")
     by_name = {s["session"]["session_name"]: s for s in snapshots}
+    schedule_path = directory / "sessions.json"
+    schedule = load_json(schedule_path) if schedule_path.exists() else []
+    sessions = [*schedule, *(snapshot["session"] for snapshot in snapshots)]
     return [
         by_name.get(
             n,
             {"session": {"session_name": n}, "status": "로컬 스냅샷 없음", "data": {}},
         )
-        for n in SESSION_NAMES
+        for n in weekend_session_names(sessions)
     ]
 
 

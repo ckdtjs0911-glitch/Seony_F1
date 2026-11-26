@@ -8,8 +8,12 @@
  let phase,start,end,now,playing=true,last=0;
  const text=(s,x,y,color='#edf4fc',size=18)=>{c.fillStyle=color;c.font=`${size}px system-ui`;c.fillText(s,x,y);};
  for(const option of $('.q-phase').options)option.disabled=!data.phases.some(p=>p[0]===Number(option.value));
+ const tyres={SOFT:['소프트','#ff7a83'],MEDIUM:['미디엄','#ffdb65'],HARD:['하드','#f2f5fa'],INTERMEDIATE:['인터미디어트','#64df9c'],WET:['웨트','#75b8ff']};
+ const column={rank:560,driver:625,lap:835,gap:1020,tyre:1050};
+ function right(s,x,y,color,size){c.textAlign='right';text(s,x,y,color,size);c.textAlign='left';}
  function draw(){
-  c.fillStyle='#0b1321';c.fillRect(0,0,1280,680);text(`Q${phase} · 서킷 위치`,30,40,'#6deac9',25);text(`Q${phase} · 현재까지 유효 최고 랩`,560,40,'#6deac9',25);
+  const phaseName=data.label||`Q${phase}`;
+  c.fillStyle='#0b1321';c.fillRect(0,0,1280,680);text(`${phaseName} · 서킷 위치`,30,40,'#6deac9',25);text(`${phaseName} · 현재까지 유효 최고 랩`,560,40,'#6deac9',25);
   if(track.length){c.beginPath();track.forEach((r,i)=>{const p=point(r);i?c.lineTo(...p):c.moveTo(...p);});c.closePath();c.strokeStyle='#4c5b70';c.lineWidth=8;c.stroke();}
   for(const path of data.pit_reference?.segments||[]){c.beginPath();path.forEach((r,i)=>{const p=point(r);i?c.lineTo(...p):c.moveTo(...p);});c.strokeStyle='#0b1321';c.lineWidth=7;c.stroke();c.strokeStyle='#38dfc8';c.lineWidth=3;c.stroke();}
   if(data.pit_reference)text('PIT LANE · 청록색 참고선',30,600,'#38dfc8',14);
@@ -21,14 +25,28 @@
   }
   const best=new Map();for(const r of data.laps){if(r[1]!==phase||r[2]+r[3]>now)continue;const prev=best.get(r[0]);if(!prev||r[3]<prev[3])best.set(r[0],r);}
   const ranks=[...best.values()].sort((a,b)=>a[3]-b[3]);
-  text('순위   선수          최고 랩                 1위와 차이',560,86,'#b7c9df',16);
-  ranks.forEach((r,i)=>{const d=data.drivers.find(d=>d.number===r[0]),y=120+i*23;const min=Math.floor(r[3]/60),sec=(r[3]%60).toFixed(3).padStart(6,'0');text(`P${i+1}`,560,y);text(d?.name||String(r[0]),620,y,d?.color);text(`${min}:${sec}`,755,y);text(i?`+${(r[3]-ranks[0][3]).toFixed(3)} s`:'기준 기록',950,y,'#b7c9df');});
-  if(!ranks.length)text('아직 이 단계에서 완료한 유효 랩이 없습니다.',560,130,'#b7c9df');
-  $('.q-status').textContent=`Q${phase} · 위치 표시 ${count}명 · 유효 랩 기록 ${ranks.length}명`;
+  text('순위',column.rank,86,'#b7c9df',16);
+  text('선수',column.driver,86,'#b7c9df',16);
+  right('최고 랩',column.lap,86,'#b7c9df',16);
+  right('1위와의 차이',column.gap,86,'#b7c9df',16);
+  text('타이어',column.tyre,86,'#b7c9df',16);
+  ranks.forEach((r,i)=>{
+   const d=data.drivers.find(d=>d.number===r[0]),y=120+i*23;
+   const ms=Math.round(r[3]*1000),min=Math.floor(ms/60000),sec=((ms%60000)/1000).toFixed(3).padStart(6,'0');
+   text(`P${i+1}`,column.rank,y);
+   text(d?.name||String(r[0]),column.driver,y,d?.color);
+   right(`${min}:${sec}`,column.lap,y);
+   right(i?`+${(r[3]-ranks[0][3]).toFixed(3)} s`:'기준 기록',column.gap,y,'#b7c9df');
+   const tyre=tyres[r[5]];
+   if(tyre){c.beginPath();c.arc(column.tyre+7,y-5,5,0,Math.PI*2);c.strokeStyle=tyre[1];c.lineWidth=2;c.stroke();}
+   text(tyre?.[0]||'미확인',column.tyre+20,y,tyre?.[1]||'#b7c9df',16);
+  });
+  if(!ranks.length)text('아직 완료된 유효 랩이 없습니다.',560,130,'#b7c9df');
+  $('.q-status').textContent=`${phaseName} · 위치 자료 표시 ${count}명 · 유효 랩 기록 ${ranks.length}명`;
   $('.q-clock').textContent=new Date((data.start+now)*1000).toISOString().slice(11,19)+' UTC';$('.q-seek').value=Math.round((now-start)/(end-start)*1000);canvas.dataset.phase=phase;canvas.dataset.time=now;
  }
  function choose(){phase=Number($('.q-phase').value);const window=data.phases.find(p=>p[0]===phase);if(!window)return;[ ,start,end]=window;now=start;playing=true;$('.q-play').textContent='일시정지';draw();}
  $('.q-phase').onchange=choose;$('.q-seek').oninput=()=>{now=start+Number($('.q-seek').value)/1000*(end-start);draw();};$('.q-play').onclick=()=>{playing=!playing;$('.q-play').textContent=playing?'일시정지':'재생';};
  function tick(t){if(!root.isConnected)return;const dt=Math.min((t-last)/1000,.1);last=t;if(playing){now+=dt*Number($('.q-rate').value);if(now>end)now=start;draw();}requestAnimationFrame(tick);}
  $('.q-phase').value=String(data.phases[0][0]);choose();requestAnimationFrame(tick);
-}catch(e){root.querySelector('.q-status').textContent='퀄리파잉 위치 자료를 불러오지 못했습니다.';console.error(e);}})();})();
+}catch(e){root.querySelector('.q-status').textContent='서킷 위치 자료를 불러오지 못했습니다.';console.error(e);}})();})();
