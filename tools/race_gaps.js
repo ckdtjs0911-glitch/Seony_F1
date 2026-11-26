@@ -37,7 +37,8 @@
    const tr=document.createElement('tr');fragment.append(tr);
    const cell=(text)=>{const td=tr.insertCell();td.textContent=text;return td;};
    const detail=(td,text)=>{const small=document.createElement('small');small.textContent=text;td.append(small);};
-   const driver=cell(`${row.pos}  ${row.d[0]}`);driver.className='gap-team';driver.style.borderColor=row.d[1];
+   const driver=cell(`${row.pos} `);driver.className='gap-team';driver.style.borderColor=row.d[1];
+   const name=document.createElement('span');name.className='gap-driver-name';name.textContent=row.d[0];name.style.color=row.d[1];driver.append(name);
    const interval=cell(row.interval);if(row.pos!==1&&row.lead!=='—')detail(interval,`선두 ${row.lead}`);
    const seconds=row.completed?.[2];
    const lapTime=cell(seconds>0?`${Math.floor(seconds/60)}:${(seconds%60).toFixed(3).padStart(6,'0')}`:'—');
