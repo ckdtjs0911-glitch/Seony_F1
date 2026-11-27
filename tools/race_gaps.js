@@ -4,6 +4,7 @@
  const canvas=$('gap-canvas'),mapContext=canvas.getContext('2d');
  const circle=$('gap-circle'),circleContext=circle.getContext('2d'),seek=$('gap-seek');
  let c=mapContext,now=0,playing=true,last=0;
+ const trackWidth=9;
  const track=data.track||[],rawX=track.map(p=>p[0]),rawY=track.map(p=>p[1]);
  const rotate=Math.max(...rawY)-Math.min(...rawY)>Math.max(...rawX)-Math.min(...rawX),orient=r=>rotate?[r[1],-r[0]]:r;
  const extent=track.map(orient),xs=extent.map(p=>p[0]),ys=extent.map(p=>p[1]),minx=Math.min(...xs),miny=Math.min(...ys),width=Math.max(...xs)-minx||1,height=Math.max(...ys)-miny||1;
@@ -40,19 +41,17 @@
   const dx=next[0]-end[0],dy=next[1]-end[1],length=Math.hypot(dx,dy);
   if(!length||Math.hypot(first[0]-end[0],first[1]-end[1])>25)return;
   const x=(first[0]+end[0])/2,y=(first[1]+end[1])/2;
-  const ax=-dy/length*13,ay=dx/length*13;
-  c.beginPath();c.moveTo(x-ax,y-ay);c.lineTo(x+ax,y+ay);
-  c.strokeStyle='#edf4fc';c.lineWidth=3;c.stroke();
-  const flagX=Math.min(canvas.width-35,x+16),flagY=Math.max(6,y-35);
-  c.fillStyle='#edf4fc';c.fillRect(flagX,flagY,2,29);
-  const size=6;
-  for(let row=0;row<3;row++){
-   for(let col=0;col<4;col++){
+  const size=trackWidth/3;
+  c.save();
+  c.translate(x,y);
+  c.rotate(Math.atan2(dy,dx));
+  for(let row=0;row<2;row++){
+   for(let col=0;col<3;col++){
     c.fillStyle=(row+col)%2?'#0b1321':'#edf4fc';
-    c.fillRect(flagX+2+col*size,flagY+row*size,size,size);
+    c.fillRect((row-1)*size,col*size-trackWidth/2,size,size);
    }
   }
-  c.strokeStyle='#edf4fc';c.lineWidth=1;c.strokeRect(flagX+2,flagY,24,18);
+  c.restore();
  }
 
  let lastTable;
@@ -90,7 +89,7 @@
  function draw(){
   c=mapContext;
   c.clearRect(0,0,canvas.width,canvas.height);
-  if(track.length){c.beginPath();track.forEach((r,i)=>{const p=point(r);i?c.lineTo(...p):c.moveTo(...p);});c.closePath();c.strokeStyle='#4c5b70';c.lineWidth=9;c.stroke();}
+  if(track.length){c.beginPath();track.forEach((r,i)=>{const p=point(r);i?c.lineTo(...p):c.moveTo(...p);});c.closePath();c.strokeStyle='#4c5b70';c.lineWidth=trackWidth;c.stroke();}
   const pitPaths=data.pit_reference?.segments||data.pit_tracks||[];
   for(const segment of pitPaths){c.beginPath();segment.forEach((r,i)=>{const p=point(r);i?c.lineTo(...p):c.moveTo(...p);});c.strokeStyle='#0b1321';c.lineWidth=7;c.stroke();c.strokeStyle='#38dfc8';c.lineWidth=3;c.setLineDash(data.pit_reference?[]:[6,4]);c.stroke();c.setLineDash([]);}
   drawFinishLine();
