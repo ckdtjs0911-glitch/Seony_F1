@@ -147,12 +147,15 @@ def render_gaps(snapshot, directory):
     payload=base64.b64encode(path.read_bytes()).decode()
     timing = json.dumps(timing_laps(snapshot)).replace('<', r'\u003c')
     return '''<section id="race-gap-replay"><h3>시간별 레이스 위치 · 앞차와 간격</h3><p>타이밍 표, 서킷 지도, 원형 간격은 같은 재생 시각을 기준으로 표시합니다. 랩타임은 기록이 있는 마지막 완료 랩의 시간입니다. <select id="gap-rate" aria-label="레이스 재생 속도"><option value="1">1배속</option><option value="4" selected>4배속</option><option value="8">8배속</option><option value="16">16배속</option><option value="32">32배속</option></select></p>
-<p><button type="button" id="gap-play">일시정지</button> <span class="gap-seek-wrap"><input id="gap-seek" type="range" min="0" max="1000" value="0" aria-label="레이스 시간" aria-describedby="gap-lap-note"><span id="gap-lap-marks" aria-hidden="true"></span></span>  <span id="gap-clock"></span> <span id="gap-lap-clock"></span></p>
+<div class="gap-controls"><button type="button" id="gap-play">일시정지</button> <span class="gap-seek-wrap"><input id="gap-seek" type="range" min="0" max="1000" value="0" aria-label="레이스 시간" aria-describedby="gap-lap-note"><span id="gap-lap-marks" aria-hidden="true"></span></span><span class="gap-readout"><span id="gap-clock"></span> <span id="gap-lap-clock"></span></span></div>
 <p id="gap-status" role="status">위치 데이터를 준비하고 있습니다.</p>
 <style>
 .gap-layout{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:12px}
-.gap-seek-wrap{position:relative;display:inline-grid;width:50%;vertical-align:middle}
-.gap-seek-wrap input{width:100%;margin:0}
+.gap-controls{display:flex;align-items:center;flex-wrap:wrap;gap:.65rem}
+.gap-seek-wrap{position:relative;display:block;flex:1 1 12rem;min-width:0}
+#gap-seek{display:block;box-sizing:border-box;width:100%;min-width:0;max-width:100%;margin:0}
+.gap-readout{display:flex;flex-wrap:wrap;gap:.5rem;flex:none;font-variant-numeric:tabular-nums}
+.gap-readout span{white-space:nowrap}
 #gap-lap-marks{position:absolute;inset:auto 8px 50%;height:9px;transform:translateY(50%);pointer-events:none}
 #gap-lap-marks i{position:absolute;width:1px;height:100%;background:#fff}
 .gap-panel{min-width:0;margin:0}
