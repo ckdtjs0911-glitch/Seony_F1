@@ -15,6 +15,46 @@
  const timing=JSON.parse($('gap-timing-data').textContent),table=$('gap-timing-body');
  const compounds={SOFT:'S',MEDIUM:'M',HARD:'H',INTERMEDIATE:'I',WET:'W'};
  const completedLaps=new Map(Object.entries(timing).map(([number,laps])=>[Number(number),laps.filter(r=>r[2]>0).map(r=>[r[0]+r[2]*1000,r]).sort((a,b)=>a[0]-b[0])]));
+ const raceDuration=data.end-data.start;
+ const lapFinishes=new Map();
+ for(const laps of completedLaps.values()){
+  for(const [time,lap] of laps){
+   const elapsed=time/1000-data.start,number=lap[1];
+   if(elapsed>=0&&elapsed<=raceDuration&&elapsed<(lapFinishes.get(number)??Infinity)){
+    lapFinishes.set(number,elapsed);
+   }
+  }
+ }
+ const lapMarkers=[...lapFinishes].sort((a,b)=>a[1]-b[1]);
+ const markers=document.createDocumentFragment();
+ for(const [,elapsed] of lapMarkers){
+  const mark=document.createElement('i');
+  mark.style.left=`${elapsed/raceDuration*100}%`;
+  markers.append(mark);
+ }
+ $('gap-lap-marks').append(markers);
+
+ function drawFinishLine(){
+  if(track.length<3)return;
+  const first=point(track[0]),end=point(track.at(-1)),next=point(track[1]);
+  const dx=next[0]-end[0],dy=next[1]-end[1],length=Math.hypot(dx,dy);
+  if(!length||Math.hypot(first[0]-end[0],first[1]-end[1])>25)return;
+  const x=(first[0]+end[0])/2,y=(first[1]+end[1])/2;
+  const ax=-dy/length*13,ay=dx/length*13;
+  c.beginPath();c.moveTo(x-ax,y-ay);c.lineTo(x+ax,y+ay);
+  c.strokeStyle='#edf4fc';c.lineWidth=3;c.stroke();
+  const flagX=Math.min(canvas.width-35,x+16),flagY=Math.max(6,y-35);
+  c.fillStyle='#edf4fc';c.fillRect(flagX,flagY,2,29);
+  const size=6;
+  for(let row=0;row<3;row++){
+   for(let col=0;col<4;col++){
+    c.fillStyle=(row+col)%2?'#0b1321':'#edf4fc';
+    c.fillRect(flagX+2+col*size,flagY+row*size,size,size);
+   }
+  }
+  c.strokeStyle='#edf4fc';c.lineWidth=1;c.strokeRect(flagX+2,flagY,24,18);
+ }
+
  let lastTable;
  function updateTiming(rows,elapsed){
   const t=Math.round(data.start*1000+elapsed);
@@ -53,6 +93,7 @@
   if(track.length){c.beginPath();track.forEach((r,i)=>{const p=point(r);i?c.lineTo(...p):c.moveTo(...p);});c.closePath();c.strokeStyle='#4c5b70';c.lineWidth=9;c.stroke();}
   const pitPaths=data.pit_reference?.segments||data.pit_tracks||[];
   for(const segment of pitPaths){c.beginPath();segment.forEach((r,i)=>{const p=point(r);i?c.lineTo(...p):c.moveTo(...p);});c.strokeStyle='#0b1321';c.lineWidth=7;c.stroke();c.strokeStyle='#38dfc8';c.lineWidth=3;c.setLineDash(data.pit_reference?[]:[6,4]);c.stroke();c.setLineDash([]);}
+  drawFinishLine();
   label(pitPaths.length?'PIT LANE · 청록색 참고선':'PIT LANE · 분리 경로 미확인',30,575,'#38dfc8',17);
   const active=[];
   for(const d of data.drivers){
@@ -99,6 +140,8 @@
   label('원형 눈금: 큰 시간차는 압축 · 실제 서킷 위치와 별개',18,572,'#b7c9df',16);
   if(lapped.length)label(lapped.join(' · ').slice(0,90),18,594,'#b7c9df',15);
   const clock=new Date((data.start+now)*1000).toISOString().slice(11,19);$('gap-clock').textContent=clock+' UTC';seek.value=Math.round(now/(data.end-data.start)*1000);canvas.dataset.time=now;
+  const completed=lapMarkers.findLast(([,elapsed])=>elapsed<=now);
+  $('gap-lap-clock').textContent=completed?`완료 랩 ${completed[0]}`:'';
   $('gap-status').textContent=active.length?`같은 시각 위치·간격 기록 · ${clock} UTC`:'현재 시각의 위치·간격 기록을 기다리는 구간입니다.';
  }
  seek.oninput=()=>{now=Number(seek.value)/1000*(data.end-data.start);eased.clear();easedX.clear();draw();};

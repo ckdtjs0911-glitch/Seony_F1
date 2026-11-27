@@ -147,10 +147,14 @@ def render_gaps(snapshot, directory):
     payload=base64.b64encode(path.read_bytes()).decode()
     timing = json.dumps(timing_laps(snapshot)).replace('<', r'\u003c')
     return '''<section id="race-gap-replay"><h3>시간별 레이스 위치 · 앞차와 간격</h3><p>타이밍 표, 서킷 지도, 원형 간격은 같은 재생 시각을 기준으로 표시합니다. 랩타임은 기록이 있는 마지막 완료 랩의 시간입니다.</p>
-<p><button type="button" id="gap-play">일시정지</button> <input id="gap-seek" type="range" min="0" max="1000" value="0" aria-label="레이스 시간" style="width:50%"> <select id="gap-rate" aria-label="레이스 재생 속도"><option value="1">1배속</option><option value="4" selected>4배속</option><option value="8">8배속</option><option value="16">16배속</option><option value="32">32배속</option></select> <span id="gap-clock"></span></p>
+<p><button type="button" id="gap-play">일시정지</button> <span class="gap-seek-wrap"><input id="gap-seek" type="range" min="0" max="1000" value="0" aria-label="레이스 시간" aria-describedby="gap-lap-note"><span id="gap-lap-marks" aria-hidden="true"></span></span> <select id="gap-rate" aria-label="레이스 재생 속도"><option value="1">1배속</option><option value="4" selected>4배속</option><option value="8">8배속</option><option value="16">16배속</option><option value="32">32배속</option></select> <span id="gap-clock"></span> <span id="gap-lap-clock"></span></p>
 <p id="gap-status" role="status">위치 데이터를 준비하고 있습니다.</p>
 <style>
 .gap-layout{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:12px}
+.gap-seek-wrap{position:relative;display:inline-grid;width:50%;vertical-align:middle}
+.gap-seek-wrap input{width:100%;margin:0}
+#gap-lap-marks{position:absolute;inset:auto 8px 50%;height:9px;transform:translateY(50%);pointer-events:none}
+#gap-lap-marks i{position:absolute;width:1px;height:100%;background:#fff}
 .gap-panel{min-width:0;margin:0}
 .gap-panel h4{font-size:1.05rem;color:#6deac9;margin:0 0 .65rem}
 .gap-panel canvas{display:block;width:100%;height:auto;background:#0b1321}
@@ -166,6 +170,7 @@ def render_gaps(snapshot, directory):
 <div class="gap-layout"><section class="gap-panel"><h4>드라이버 타이밍</h4><div class="gap-timing" role="region" aria-label="드라이버 타이밍" tabindex="0">
 <table><thead><tr><th scope="col">드라이버</th><th scope="col">간격</th><th scope="col">랩타임</th><th scope="col">타이어</th></tr></thead>
 <tbody id="gap-timing-body"><tr><td colspan="4">타이밍 기록을 기다리는 구간입니다.</td></tr></tbody></table></div></section><section class="gap-panel"><h4>서킷 위치 · 시간별 재생</h4><canvas id="gap-canvas" width="520" height="600" aria-label="시간별 서킷 위치"></canvas></section><section class="gap-panel"><h4>원형 시간 간격 · 앞차와 간격</h4><canvas id="gap-circle" width="520" height="600" aria-label="원형 시간 간격"></canvas></section></div>
+<p id="gap-lap-note">재생 막대의 흰색 선은 각 랩에서 기록된 가장 이른 완료 시각을 표시합니다. 지도 위 체커기는 기준 랩의 시작과 끝 좌표로 추정한 피니시 라인을 표시합니다.</p>
 <p>간격은 OpenF1 intervals의 최근 10초 이내 기록만 표시합니다. 위치는 0.5초 이상 간격으로 저장하며 2초 넘는 공백은 숨깁니다. 랩 차이는 초로 바꾸지 않고 +1 LAP처럼 표시합니다. 점의 중간 이동은 표시용 보간입니다.</p>
 <p>청록색 PIT LANE은 확인된 지도 경로를 세션 좌표에 근사 정합한 참고선입니다. 차량의 실제 피트 이동 궤적과는 구분합니다. ‘PIT LAP’은 피트 기록이 있는 랩이며 정확한 피트 진입·출구 시각은 아닙니다. 지도 경로가 없으면 실제 관측에서 분리된 추정 경로만 표시합니다.</p>
 </section><script id="gap-timing-data" type="application/json">'''+timing+'''</script><script id="gap-payload" type="application/octet-stream">'''+payload+'</script><script>'+script+'</script>'
