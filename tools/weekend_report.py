@@ -209,7 +209,9 @@ def render_verdicts(name, rows):
                 if row["position"] is not None
                 else "API 순위 미제공"
             )
-            text = f"{rank} · 관측 최속 {seconds(row['fastest'])}, 피트 레인 진입 {row['pits']}회가 기록됐습니다."
+            text = f"{rank} · 관측 최속 {seconds(row['fastest'])}"
+            if row["pits"] is not None:
+                text += f", 피트 레인 진입 {row['pits']}회가 기록됐습니다."
         else:
             delta = row["fastest"] - best
             assessment = "관측 최속 기준 선두" if delta == 0 else f"세션 관측 최속보다 {delta:.3f}초 느림"
@@ -370,7 +372,7 @@ def summarize(snapshot):
                 if clean
                 else None,
                 "samples": len(clean),
-                "pits": len(pits),
+                "pits": None if snapshot.get("data_source") == "fastf1" else len(pits),
                 "records": len(laps),
                 "stints": by_compound,
                 "laps": [
@@ -435,7 +437,7 @@ def render_table(name, rows):
             f'<td>{or_dash(row["completed"])} / {row["records"]}</td>'
             f'<td>{esc(format_gap(row["gap"]))}</td>'
             f'<td>{or_dash(row["points"])}</td>'
-            f'<td>{row["pits"]}</td></tr>'
+            f'<td>{or_dash(row["pits"])}</td></tr>'
         )
     return (
         '<div class="scroll result-table"><table><thead><tr><th>API 순위</th><th>드라이버 / 팀</th>'
@@ -539,6 +541,11 @@ def item_sources(item, events_html, video_html, qualifying_html, fastf1_html, ap
     base = [
         "OpenF1 " + " · ".join(openf1(e, key) for e in ENDPOINTS) + f" · 수집 {when(item.get('fetched_at'))}"
     ]
+    if item.get("data_source") == "fastf1":
+        return [("임시 보고서 · 세션 결과 및 랩 기록", [
+            link(item["fastf1_source_url"], "FastF1 원자료"),
+            f"FastF1 {esc(item['fastf1_version'])} · 수집 {when(item.get('fetched_at'))}",
+        ])]
     if session.get("meeting_key"):
         base.append(link(f'https://api.openf1.org/v1/sessions?meeting_key={session["meeting_key"]}', "OpenF1 주말 세션 목록"))
     found = [("기록 설명 · 결과 표 · 선수별 한 줄 평 · 타이어 스틴트 · 랩타임 & 섹터 분석", base)]
@@ -597,13 +604,14 @@ def render(snapshots, output, now=None, starting_tyre_summaries=None):
             render_beginner_notes(name, rows)
             + render_table(name, rows) + render_verdicts(name, rows) + render_stints(rows)
         )
-        events_html = render_race_events(item, rows)
-        video_html = render_video_section(item)
-        qualifying_html = render_qualifying(item)
-        fastf1_html = render_fastf1_source(item)
+        provisional = item.get("data_source") == "fastf1"
+        events_html = "" if provisional else render_race_events(item, rows)
+        video_html = "" if provisional else render_video_section(item)
+        qualifying_html = "" if provisional else render_qualifying(item)
+        fastf1_html = "" if provisional else render_fastf1_source(item)
         body += events_html + video_html + qualifying_html + fastf1_html
         appendix = {}
-        if name == "Race":
+        if name == "Race" and not provisional:
             appendix["pit"] = render_pitstops(item, rows)
             appendix["tyres"] = render_race_attachments(
                 item, starting_tyre_summaries=starting_tyre_summaries
@@ -651,10 +659,12 @@ def render(snapshots, output, now=None, starting_tyre_summaries=None):
     methodology = "".join(f"<li>{text}</li>" for text in METHODOLOGY)
     chart_css = CHART_CSS.read_text(encoding=ENCODING)
     chart_js = CHART_JS.read_text(encoding=ENCODING).replace("REPORT_ROWS", safe_json)
+    source_notice = ("OpenF1 자료와 FastF1 임시 자료를 사용합니다. 세션별 출처와 수집 상태를 확인할 수 있습니다."
+        if any(item.get("data_source") == "fastf1" for item in snapshots) else "OpenF1 API 데이터로 만든 보고서입니다.")
     page = f"""<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(location)} · F1 {esc(heading)}</title>
 <style>{STYLE}</style></head><body>
 <main><header><p class="eyebrow">SEONY F1 / WEEKEND REPORT</p><h1>{esc(location)} · {esc(heading)}</h1><p>{esc(coverage)}<br>생성 시각 {display_time(now)} · 출처는 맨 아래 <a href="#{report_sources.ANCHOR}">항목별 출처</a></p><button type="button" onclick="document.querySelectorAll('details').forEach(d=>d.open=true);window.print()">인쇄 / PDF 저장</button></header>
-<p class="notice">OpenF1 API 데이터로 만든 보고서이며, FIA 공식 결과와 별도로 대조하지 않았습니다. 데이터 대기·누락·갱신 실패는 구분해 표시합니다. 각 세션의 선수 목록은 drivers·session_result·laps 응답에 나온 선수를 모두 합친 것입니다. 일정에 따라 아직 열리지 않은 세션이 있을 수 있습니다.</p>
+<p class="notice">{source_notice} FIA 공식 결과와 별도로 대조하지 않았습니다. 데이터 대기·누락·갱신 실패는 구분해 표시합니다. 각 세션의 선수 목록은 drivers·session_result·laps 응답에 나온 선수를 모두 합친 것입니다. 일정에 따라 아직 열리지 않은 세션이 있을 수 있습니다.</p>
 <ul>{"".join(summary)}{race_shortcut}<li><a href="#lap-sector-analysis">랩타임 &amp; 섹터 분석</a> · 세션별 랩·섹터·타이어 차트</li><li><a href="#{report_sources.ANCHOR}">항목별 출처</a></li></ul><input id="search" type="search" placeholder="선수 / 팀 검색 (예: 노리스, 멕라렌)" aria-label="선수 또는 팀 검색">{"".join(sections)}
 {CHART_SECTION}
 <h2>지표 해석과 한계</h2><ul>{methodology}</ul>{race_appendix}{overtake_appendix}{report_sources.render_sources(source_groups)}</main>
@@ -668,7 +678,7 @@ def session_end(session):
     return stamp(session.get("actual_date_end") or session["date_end"])
 
 
-def collect(meeting_key=None, output_root=None, targets=None, now=None):
+def collect(meeting_key=None, output_root=None, targets=None, now=None, allow_fastf1=False):
     """Collect a weekend. ``targets`` (automatic runs) limits API calls to those
     session keys; other sessions keep their cached snapshots."""
     now = now or datetime.now(timezone.utc)
@@ -703,6 +713,7 @@ def collect(meeting_key=None, output_root=None, targets=None, now=None):
     snapshots, errors = [], []
     changed = not (directory / "weekend-report.html").exists()
     fetched_any = False
+    auth_blocked = False
     for name in weekend_session_names(sessions):
         candidates = [s for s in sessions if s["session_name"] == name]
         if not candidates:
@@ -769,7 +780,8 @@ def collect(meeting_key=None, output_root=None, targets=None, now=None):
                 "fetched_at": now.isoformat(),
                 "data": data,
             }
-            new = previous is None or previous.get("data") != data or previous.get("session") != session
+            new = (previous is None or previous.get("data_source") == "fastf1"
+                   or previous.get("data") != data or previous.get("session") != session)
             changed = changed or new
             fetched_any = True
             save_json(path, snapshot)
@@ -777,15 +789,36 @@ def collect(meeting_key=None, output_root=None, targets=None, now=None):
         except (requests.RequestException, ValueError) as exc:
             if isinstance(exc, requests.HTTPError) and exc.response is not None and exc.response.status_code == 401:
                 attempt("auth_restricted")
-                # Stop publication rather than labeling cached data as refreshed.
-                raise
+                if not allow_fastf1:
+                    raise
+                auth_blocked = True
+                fallback = None
+                if previous is None:
+                    try:
+                        from fastf1_source import fallback_snapshot
+                        fallback = fallback_snapshot(session, now)
+                    except Exception as fallback_error:
+                        print(f"FastF1 fallback unavailable: {type(fallback_error).__name__}", file=sys.stderr)
+                if fallback:
+                    save_json(path, fallback)
+                    snapshots.append(fallback)
+                    changed = fetched_any = True
+                    attempt("fastf1_provisional")
+                else:
+                    print(f"Session {session['session_key']}: OpenF1 HTTP 401; no new FastF1 report.")
+                    snapshots.append(previous or {
+                        "session": session,
+                        "status": "OpenF1 인증 대기 / FastF1 자료 미제공",
+                        "data": {},
+                    })
+                continue
             attempt("missing" if isinstance(exc, ValueError) else "failed")
             error = f"{type(exc).__name__}: {exc}"
             errors.append(f"{name}: {error}")
             snapshot = dict(previous) if previous else {"session": session, "data": {}}
             snapshot.update(status="갱신 실패 / 자동 재시도 안 함 (수동 요청 시 재수집)", error=error)
         snapshots.append(snapshot)
-    if targets is not None and not fetched_any:
+    if (targets is not None or auth_blocked) and not fetched_any:
         # Automatic run without collected target data (deferred or failed): attempt state only.
         changed = False
     if changed:
@@ -822,6 +855,7 @@ def main():
         help="OpenF1 meeting_key; default: most recent started weekend",
     )
     parser.add_argument("--output-root", type=Path)
+    parser.add_argument("--fastf1-fallback", action="store_true", help="Use FastF1 when OpenF1 returns HTTP 401")
     parser.add_argument("--defer-auth", action="store_true",
                         help="Preserve published reports on HTTP 401; no automatic retry (manual request only)")
     parser.add_argument("--sessions", default="",
@@ -839,7 +873,7 @@ def main():
         targets = [int(x) for x in args.sessions.split(",") if x.strip()] or None
         if targets and args.meeting is None:
             raise ValueError("--sessions requires --meeting")
-        result = collect(args.meeting, args.output_root, targets)
+        result = collect(args.meeting, args.output_root, targets, allow_fastf1=args.fastf1_fallback)
         if args.defer_auth:
             write_collection_output(result == 0)
         return 0 if result == 2 else result

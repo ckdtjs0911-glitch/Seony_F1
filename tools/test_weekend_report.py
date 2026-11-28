@@ -81,6 +81,42 @@ class ReportTests(unittest.TestCase):
                     report.collect(2, root)
                 render.assert_not_called()
 
+    def test_fastf1_fallback_can_be_upgraded_to_openf1(self):
+        item = snapshot("Practice 1")
+        fallback = dict(
+            item, data_source="fastf1", status="FastF1 임시 보고서",
+            fastf1_source_url="https://livetiming.formula1.com/",
+            fastf1_version="test",
+        )
+        response = requests.Response()
+        response.status_code = 401
+        error = requests.HTTPError(response=response)
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            report.save_json(root / "catalog/sessions.json", [item["session"]])
+            with patch.object(report, "fetch", side_effect=error), patch(
+                "fastf1_source.fallback_snapshot", return_value=fallback
+            ) as fetch_fallback:
+                self.assertEqual(report.collect(2, root, {1}, allow_fastf1=True), 0)
+                fetch_fallback.assert_called_once()
+            directory = root / "weekend-2"
+            self.assertEqual(report.load_json(directory / "data/1.json")["data_source"], "fastf1")
+            self.assertIn("FastF1 임시 보고서", (directory / "weekend-report.html").read_text())
+            attempts = report.load_json(root / "catalog/report-attempts.json")
+            self.assertFalse(attempts["1"]["completed"])
+            self.assertEqual(attempts["1"]["status"], "fastf1_provisional")
+
+            def fetch(endpoint, params):
+                return [item["session"]] if endpoint == "sessions" else item["data"][endpoint]
+
+            with patch.object(report, "fetch", side_effect=fetch), patch(
+                "fastf1_source.fallback_snapshot"
+            ) as fetch_fallback:
+                self.assertEqual(report.collect(2, root, allow_fastf1=True), 0)
+                fetch_fallback.assert_not_called()
+            self.assertNotIn("data_source", report.load_json(directory / "data/1.json"))
+            self.assertIn("수집 완료 (OpenF1 기준)", (directory / "weekend-report.html").read_text())
+
     def test_auth_deferral_preserves_report_and_disables_publication(self):
         response = requests.Response()
         response.status_code = 401

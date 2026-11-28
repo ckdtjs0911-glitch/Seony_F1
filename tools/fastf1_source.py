@@ -42,6 +42,103 @@ def compare_laps(snapshot,rows):
     return {'matched_laps':len(matched),'differences_over_2ms':sum(abs(r['difference'])>.002 for r in matched),'unmatched_driver_numbers':identity,'rows':matched}
 
 
+def open_session(snapshot):
+    import fastf1
+
+    s = snapshot["session"]
+    cache=ROOT/'.cache'/'fastf1';cache.mkdir(parents=True,exist_ok=True);fastf1.Cache.configure(cache_dir=str(cache))
+    schedule=fastf1.get_event_schedule(s['year'],include_testing=False,backend='fastf1')
+    matching=schedule[schedule['Location'].map(normalized)==normalized(s['location'])]
+    if len(matching)!=1:raise ValueError('No unique FastF1 schedule entry for requested year and location')
+    event=matching.iloc[0]
+    session=fastf1.get_session(s['year'],int(event['RoundNumber']),CODES[s['session_name']])
+    identity_check(snapshot,event,session.name,session.date)
+    return fastf1, event, session
+
+
+def fallback_snapshot(session_info, now):
+    """Adapt verified FastF1 data for the report renderer after an OpenF1 401."""
+    import math
+    import pandas as pd
+    import requests
+    from fastf1.ergast import Ergast
+
+    fastf1, event, session = open_session({"session": session_info})
+    url = "https://livetiming.formula1.com" + session.api_path + "SessionInfo.json"
+    response = requests.get(url, timeout=20)
+    name = session_info["session_name"]
+    data = {key: [] for key in ("drivers", "laps", "session_result", "stints", "pit", "race_control")}
+
+    def number(value):
+        try:
+            value = float(value)
+            return value if math.isfinite(value) and value >= 0 else None
+        except (ValueError, TypeError):
+            return None
+
+    def seconds(value):
+        return value.total_seconds() if pd.notna(value) and hasattr(value, "total_seconds") else None
+
+    if response.status_code == 200:
+        session.load(laps=True, telemetry=False, weather=False, messages=False)
+        results = session.results
+        laps = session.laps
+        detail = True
+    else:
+        endpoint = {"Race": "get_race_results", "Qualifying": "get_qualifying_results", "Sprint": "get_sprint_results"}.get(name)
+        if not endpoint:
+            return None
+        result = getattr(Ergast(), endpoint)(season=session_info["year"], round=int(event["RoundNumber"]))
+        if not result.content:
+            return None
+        results = result.content[0].rename(columns={"number": "DriverNumber", "position": "Position",
+            "givenName": "FirstName", "familyName": "LastName", "constructorName": "TeamName",
+            "driverCode": "Abbreviation", "points": "Points", "laps": "Laps", "totalRaceTime": "Time"})
+        if "DriverNumber" not in results:
+            results = results.rename(columns={"driverNumber": "DriverNumber"})
+        laps = None
+        detail = False
+    for _, row in results.iterrows():
+        driver = number(row.get("DriverNumber"))
+        if not driver:
+            continue
+        driver = int(driver)
+        full_name = " ".join(str(row[field]) for field in ("FirstName", "LastName") if pd.notna(row.get(field)))
+        data["drivers"].append({"driver_number": driver, "full_name": full_name or f"Driver {driver}",
+            "team_name": str(row["TeamName"]) if pd.notna(row.get("TeamName")) else "팀 정보 없음"})
+        if number(row.get("Position")):
+            data["session_result"].append({"driver_number": driver, "position": int(row["Position"]),
+                "number_of_laps": number(row.get("Laps")), "points": number(row.get("Points")),
+                "duration": [seconds(row.get(q)) for q in ("Q1", "Q2", "Q3")] if name == "Qualifying" else None})
+    stint_laps = {}
+    if laps is not None:
+        for _, row in laps.iterrows():
+            driver, lap = number(row.get("DriverNumber")), number(row.get("LapNumber"))
+            duration = seconds(row.get("LapTime"))
+            if not driver or not lap or not duration or (pd.notna(row.get("Deleted")) and row["Deleted"]):
+                continue
+            driver, lap = int(driver), int(lap)
+            data["laps"].append({"driver_number": driver, "lap_number": lap, "lap_duration": duration,
+                "duration_sector_1": seconds(row.get("Sector1Time")),
+                "duration_sector_2": seconds(row.get("Sector2Time")),
+                "duration_sector_3": seconds(row.get("Sector3Time")),
+                "is_pit_out_lap": bool(pd.notna(row.get("PitOutTime")))})
+            stint = number(row.get("Stint"))
+            if stint and pd.notna(row.get("Compound")):
+                stint_laps.setdefault((driver, int(stint), str(row["Compound"])), []).append(lap)
+    data["stints"] = [
+        {"driver_number": driver, "stint_number": stint, "compound": compound,
+         "lap_start": min(lap_numbers), "lap_end": max(lap_numbers)}
+        for (driver, stint, compound), lap_numbers in stint_laps.items()
+    ]
+    if not (data["laps"] or data["session_result"]):
+        return None
+    return {"session": session_info, "data": data, "data_source": "fastf1",
+        "status": "FastF1 임시 보고서 · OpenF1 인증 대기" if detail else "FastF1 공개 결과만 · OpenF1 인증 대기",
+        "fetched_at": now.isoformat(), "fastf1_version": fastf1.__version__,
+        "fastf1_timing_status": response.status_code, "fastf1_source_url": url if detail else "https://api.jolpi.ca/ergast/"}
+
+
 def collect(snapshot,directory,force=False,telemetry=True,authenticated=False):
     import fastf1
     import pandas as pd
@@ -51,13 +148,7 @@ def collect(snapshot,directory,force=False,telemetry=True,authenticated=False):
     if target.exists() and not force:
         previous=json.loads(target.read_text(encoding='utf-8'))
         if previous.get('fingerprint')==fingerprint and (not authenticated or previous.get('telemetry_loaded',False)>=telemetry):return False
-    cache=ROOT/'.cache'/'fastf1';cache.mkdir(parents=True,exist_ok=True);fastf1.Cache.configure(cache_dir=str(cache))
-    schedule=fastf1.get_event_schedule(s['year'],include_testing=False,backend='fastf1')
-    matching=schedule[schedule['Location'].map(normalized)==normalized(s['location'])]
-    if len(matching)!=1:raise ValueError('No unique FastF1 schedule entry for requested year and location')
-    event=matching.iloc[0]
-    session=fastf1.get_session(s['year'],int(event['RoundNumber']),CODES[s['session_name']])
-    identity_check(snapshot,event,session.name,session.date)
+    fastf1, event, session = open_session(snapshot)
     # Probe public access first. Never trigger an interactive account prompt in a report job.
     import requests
     response=requests.get('https://livetiming.formula1.com'+session.api_path+'SessionInfo.json',timeout=20)
@@ -149,7 +240,7 @@ def main():
     if selected:paths=[p for p in paths if p.stem in selected]
     for path in paths:
         snapshot=json.loads(path.read_text(encoding='utf-8'));s=snapshot.get('session',{})
-        if s.get('session_name') not in CODES or not snapshot.get('data'):continue
+        if s.get('session_name') not in CODES or not snapshot.get('data') or snapshot.get('data_source') == 'fastf1':continue
         if not args.snapshot and datetime.now(timezone.utc).timestamp()-w.stamp(snapshot['fetched_at']).timestamp()>1800:continue
         directory=path.parent.parent/'media'
         try:

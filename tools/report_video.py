@@ -343,6 +343,8 @@ def main():
         paths = [p for p in paths if p.stem in selected]
     for path in paths:
         snapshot = json.loads(path.read_text(encoding="utf-8"))
+        if snapshot.get("data_source") == "fastf1":
+            continue
         if snapshot.get('session',{}).get('session_name')=='Qualifying':
             if not args.snapshot and datetime.now(timezone.utc).timestamp()-epoch(snapshot['fetched_at'])>1800:
                 continue

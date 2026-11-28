@@ -52,6 +52,12 @@ jobs:
       - name: Verify report generation and failure handling
         if: steps.session_gate.outputs.run == 'true'
         run: python -m unittest discover -s tools -p 'test_*.py'
+      - name: Install pinned FastF1 source
+        if: steps.session_gate.outputs.run == 'true'
+        continue-on-error: true
+        run: |
+          git submodule update --init vendor/Fast-F1
+          python -m pip install ./vendor/Fast-F1
       - name: Collect the listed sessions (all sessions on manual runs) and build report
         id: collection
         if: steps.session_gate.outputs.run == 'true'
@@ -76,7 +82,7 @@ jobs:
             fi
             args+=(--sessions "$SESSIONS")
           fi
-          python tools/weekend_report.py --defer-auth --output-root reports "${args[@]}"
+          python tools/weekend_report.py --defer-auth --fastf1-fallback --output-root reports "${args[@]}"
       - name: Install video renderer
         if: steps.collection.outputs.collected == 'true'
         run: |
@@ -90,11 +96,6 @@ jobs:
           OPENF1_CLIENT_ID: ${{ secrets.OPENF1_CLIENT_ID }}
           OPENF1_CLIENT_SECRET: ${{ secrets.OPENF1_CLIENT_SECRET }}
         run: python tools/report_video.py --root reports --sessions "$SESSIONS"
-      - name: Install pinned FastF1 source
-        if: steps.collection.outputs.collected == 'true'
-        run: |
-          git submodule update --init vendor/Fast-F1
-          python -m pip install ./vendor/Fast-F1
       - name: Collect FastF1 supplementary timing and telemetry
         if: steps.collection.outputs.collected == 'true'
         env:
