@@ -1,0 +1,31 @@
+{
+  "status": "schedule_only",
+  "session_key": 11422,
+  "fingerprint": "24fb1da930e3b6bcae0dd360bf393469a44ad4c3c1c3fbeb5b186bc82262fe4a",
+  "fetched_at": "2026-11-28T02:27:16.556617+00:00",
+  "timing_http_status": 401,
+  "timing_auth_required": true,
+  "public_result_source": "FastF1 Ergast/Jolpica backend",
+  "library_version": "0.1.0.dev1+unknown",
+  "library_commit": "f237036fdd7d3f982faf539ad01d57b115d139fe",
+  "source": "https://docs.fastf1.dev/",
+  "api_path": "/static/2026/2026-11-29_Qatar_Grand_Prix/2026-11-27_Practice_2/",
+  "identity": {
+    "year": 2026,
+    "location": "Lusail",
+    "event": "Qatar Grand Prix",
+    "round": 22,
+    "session": "Practice 2",
+    "date": "2026-11-27 17:00:00"
+  },
+  "laps": [],
+  "results": [],
+  "telemetry_loaded": false,
+  "car_data": {},
+  "comparison": {
+    "matched_laps": 0,
+    "differences_over_2ms": 0,
+    "unmatched_driver_numbers": [],
+    "rows": []
+  }
+}
