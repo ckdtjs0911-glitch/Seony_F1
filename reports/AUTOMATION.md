@@ -34,6 +34,7 @@ HTML을 재생성하지 않고, 누적 HTML 갱신·업로드·커밋·검토도
 3. 새 보고서가 저장되면 실행 요약에 누적 보고서와 HTML 폴더 링크가 나타납니다. 변경이 없을 때는 보고서 링크 전달 작업도 건너뜁니다.
 4. Claude는 저장소의 `CLAUDE_CODE_OAUTH_TOKEN` 인증을 사용합니다. 로컬 로그인과 별개이며 설정 여부·실행 성공을 확인하기 전에는 클라우드 첨삭 완료라고 표시하지 않습니다. FastF1 상세 데이터 인증 대기도 별도로 구분합니다.
 5. 클라우드 채팅은 `reports/CLOUD_HANDOVER.md`로 이어갑니다. GitHub 실행 결과가 이 로컬 채팅에 자동으로 첨부되는 기능은 구성하지 않았습니다. 중복 수집을 막기 위해 기존 로컬 생성 예약은 클라우드 전환 후 일시 중지합니다.
+6. 새로 생성하거나 수정한 세션 보고서는 최근 3개 연도 누적 보고서(`reports/index.html`)에 반영해 GitHub `main`에 저장합니다. [누적 보고서 사이트](https://f1-gp-report.neargame.chatgpt.site/)를 새로고침하면 최신 누적본을 불러옵니다.
 
 [올해 보고서](https://htmlpreview.github.io/?https://github.com/ckdtjs0911-glitch/Seony_F1/blob/main/reports/current-year.html) ·
 [누적 보고서](https://htmlpreview.github.io/?https://github.com/ckdtjs0911-glitch/Seony_F1/blob/main/reports/index.html) ·
@@ -46,7 +47,7 @@ GitHub → Actions → **F1 weekend reports** → **Run workflow**로 수동 실
 
 출력: `reports/weekend-<meeting_key>/weekend-report.html`과 `data/<session_key>.json`.
 수집에 성공하면 봇이 결과를 저장소에 커밋합니다. 실행 결과 파일은 Actions artifact로도
-30일간 보관합니다. 웹사이트 배포나 외부 게시는 하지 않습니다.
+30일간 보관합니다. 누적 보고서 사이트는 GitHub에 저장된 HTML을 불러오므로 보고서가 바뀔 때마다 사이트를 별도로 배포할 필요가 없습니다.
 
 처음 사용할 때는 저장소의 Actions가 활성화되어 있어야 합니다. 저장소 정책에서 Actions의
 콘텐츠 쓰기 권한을 제한하면 자동 커밋은 실패하지만 artifact는 내려받을 수 있습니다.
