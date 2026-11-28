@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 SUCCESS = ("collected", "unchanged")
+AUTH_PENDING = ("auth_restricted", "fastf1_provisional")
 NAME = Path("catalog") / "report-attempts.json"
 
 
@@ -24,7 +25,7 @@ def load(reports):
     return value if isinstance(value, dict) else {}
 
 
-def record(reports, session, status, now=None, actual_end=None):
+def record(reports, session, status, now=None, actual_end=None, auth_retry=False):
     """Write the attempt immediately so a later crash still keeps it."""
     now = now or datetime.now(timezone.utc)
     attempts = load(reports)
@@ -38,6 +39,8 @@ def record(reports, session, status, now=None, actual_end=None):
         completed=status in SUCCESS,
         updated_at=now.isoformat(),
     )
+    if auth_retry:
+        entry.setdefault("auth_retry_at", now.isoformat())
     if actual_end is not None:
         entry["actual_end"] = actual_end.isoformat()
     attempts[key] = entry

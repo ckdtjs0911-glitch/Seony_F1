@@ -684,10 +684,16 @@ def collect(meeting_key=None, output_root=None, targets=None, now=None, allow_fa
     now = now or datetime.now(timezone.utc)
     reports = output_root or ROOT / "reports"
     if targets is not None:
+        import os
+
         targets = {int(key) for key in targets}
+        attempts = report_attempts.load(reports)
+        authenticated = bool(os.environ.get("OPENF1_CLIENT_ID") and os.environ.get("OPENF1_CLIENT_SECRET"))
         for key in sorted(targets):
             # Record before any request so a crash cannot cause a repeated automatic query.
-            report_attempts.record(reports, {"session_key": key, "meeting_key": meeting_key}, "started", now)
+            pending = attempts.get(str(key), {}).get("status") in report_attempts.AUTH_PENDING
+            report_attempts.record(reports, {"session_key": key, "meeting_key": meeting_key},
+                                   "started", now, auth_retry=authenticated and pending)
     try:
         sessions = fetch(
             "sessions", {"meeting_key": meeting_key} if meeting_key else {"year": now.year}

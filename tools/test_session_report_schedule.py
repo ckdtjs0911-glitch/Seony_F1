@@ -68,6 +68,25 @@ class GateTests(unittest.TestCase):
     def due(self, sessions, now, root):
         return gate.due_sessions(sessions, root, now)
 
+    def test_auth_recovery_is_once_and_can_run_outside_normal_window(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            item = session()
+            now = SATURDAY_END + timedelta(hours=6)
+            report_attempts.record(root, item, "auth_restricted", now - timedelta(hours=3))
+            self.assertEqual(gate.due_sessions([item], root, now), (None, []))
+            self.assertEqual(gate.due_sessions([item], root, now, auth_configured=True), (2, [1]))
+            response = requests.Response()
+            response.status_code = 401
+            error = requests.HTTPError(response=response)
+            with patch.dict(os.environ, {"OPENF1_CLIENT_ID": "test", "OPENF1_CLIENT_SECRET": "test"}), patch.object(
+                report, "fetch", side_effect=[[item], error]
+            ), patch("fastf1_source.fallback_snapshot", return_value=None):
+                self.assertEqual(report.collect(2, root, {1}, now, allow_fastf1=True), 2)
+            attempt = report_attempts.load(root)["1"]
+            self.assertEqual(attempt["auth_retry_at"], now.isoformat())
+            self.assertEqual(gate.due_sessions([item], root, now, auth_configured=True), (None, []))
+
     def test_three_to_four_hour_window_boundaries(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

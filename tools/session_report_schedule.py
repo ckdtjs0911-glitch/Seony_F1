@@ -70,10 +70,10 @@ def processed(session, reports, end):
         complete = all(snapshot.get("data", {}).get(k) for k in ("drivers", "laps", "session_result"))
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return False
-    return complete and collected >= end + DELAY
+    return snapshot.get("data_source") != "fastf1" and complete and collected >= end + DELAY
 
 
-def due_sessions(sessions, reports, now):
+def due_sessions(sessions, reports, now, auth_configured=False):
     """Sessions of the earliest due meeting, 3-4 h after their end, not yet attempted."""
     if not automatic_day(now):
         return None, []
@@ -83,21 +83,27 @@ def due_sessions(sessions, reports, now):
         by_meeting.setdefault(session.get("meeting_key"), []).append(session)
     allowed = {key: weekend_session_names(rows) for key, rows in by_meeting.items()}
     due = []
+    recovery = []
     for session in sessions:
         if session.get("session_name") not in allowed[session.get("meeting_key")] or session.get("is_cancelled"):
             continue
         attempt = attempts.get(str(session.get("session_key")))
-        if attempt and attempt.get("status") != "deferred_end_later":
-            continue
         try:
             end = session_end(session, attempt)
         except (KeyError, ValueError, TypeError, AttributeError):
+            continue
+        if attempt and attempt.get("status") != "deferred_end_later":
+            if (auth_configured and attempt.get("status") in report_attempts.AUTH_PENDING
+                    and not attempt.get("auth_retry_at") and now >= end + DELAY
+                    and not processed(session, reports, end)):
+                recovery.append((end, session))
             continue
         if not end + DELAY <= now < end + DELAY + WINDOW:
             continue
         if processed(session, reports, end):
             continue
         due.append((end, session))
+    due = due or recovery
     if not due:
         return None, []
     meeting = min(due, key=lambda item: item[0])[1]["meeting_key"]
@@ -120,7 +126,8 @@ def main():
     if args.manual:
         meeting, keys = args.meeting, []
     elif automatic_resumed(now, args.pause_config):
-        meeting, keys = due_sessions(session_catalog(args.reports), args.reports, now)
+        meeting, keys = due_sessions(session_catalog(args.reports), args.reports, now,
+                                     auth_configured=os.environ.get("OPENF1_AUTH_CONFIGURED") == "true")
     else:
         meeting, keys = None, []
     run = args.manual or meeting is not None
