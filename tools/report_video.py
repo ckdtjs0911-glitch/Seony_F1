@@ -345,18 +345,22 @@ def main():
         snapshot = json.loads(path.read_text(encoding="utf-8"))
         if snapshot.get("data_source") == "fastf1":
             continue
-        if snapshot.get('session',{}).get('session_name')=='Qualifying':
+        from qualifying_replay import PRACTICE_SESSIONS, collect_qualifying
+        name = snapshot.get('session', {}).get('session_name')
+        if name == 'Qualifying' or name in PRACTICE_SESSIONS:
             if not args.snapshot and datetime.now(timezone.utc).timestamp()-epoch(snapshot['fetched_at'])>1800:
                 continue
             try:
-                from qualifying_replay import collect_qualifying
                 changed=args.offline or collect_qualifying(snapshot,path.parent.parent/'media',weekend_report.fetch)
                 if changed:
-                    weekend_report.render([snapshot],path.parent.parent/'qualifying-report.html')
+                    if name == 'Qualifying':
+                        weekend_report.render([snapshot],path.parent.parent/'qualifying-report.html')
                     weekend_report.render(weekend_report.load_offline(path.parent.parent),path.parent.parent/'weekend-report.html')
             except Exception as exc:
                 if args.snapshot:raise
-                print(f'Qualifying replay unavailable: {type(exc).__name__}: {exc}')
+                print(f'{name} replay unavailable: {type(exc).__name__}: {exc}')
+                if name in PRACTICE_SESSIONS:
+                    weekend_report.render(weekend_report.load_offline(path.parent.parent), path.parent.parent/'weekend-report.html')
             continue
         if snapshot.get("session", {}).get("session_name") != "Race" or not snapshot.get("data", {}).get("session_result"):
             continue

@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
+PRACTICE_SESSIONS = ("Practice 1", "Practice 2", "Practice 3")
 
 
 def lap_compounds(snapshot):
@@ -78,8 +79,10 @@ def timing_data(snapshot):
 
 def collect_qualifying(snapshot,directory,fetch):
     from report_video import epoch,iso
-    timing=timing_data(snapshot);key=snapshot['session']['session_key'];directory.mkdir(parents=True,exist_ok=True)
-    target=directory/f'{key}-qualifying.json.gz'
+    practice = snapshot['session']['session_name'] in PRACTICE_SESSIONS
+    timing = practice_timing(snapshot) if practice else timing_data(snapshot)
+    key=snapshot['session']['session_key'];directory.mkdir(parents=True,exist_ok=True)
+    target = replay_path(snapshot, directory)
     signature=hashlib.sha256(json.dumps({'session':snapshot['session'],'data':snapshot['data']},sort_keys=True).encode()).hexdigest()
     old=json.loads(gzip.decompress(target.read_bytes())) if target.exists() else {}
     start=timing['start'];end=start+max(p[2] for p in timing['phases'])
@@ -87,6 +90,8 @@ def collect_qualifying(snapshot,directory,fetch):
     value=old if old.get('signature')==signature else dict(timing,signature=signature,session_key=key,drivers=[],source='https://openf1.org/docs/#location',fetched_at=datetime.now(timezone.utc).isoformat())
     cached={d['number']:d for d in value['drivers']}
     value.update(timing)
+    if practice and not target.exists():
+        target.write_bytes(gzip.compress(json.dumps(value, separators=(',', ':')).encode(), mtime=0))
     for d in snapshot['data']['drivers']:
         number=d['driver_number']
         existing=cached.get(number,{}).get('locations',[])
@@ -103,9 +108,13 @@ def collect_qualifying(snapshot,directory,fetch):
         value['drivers']=list(cached.values())
         tmp=target.with_suffix('.tmp');tmp.write_bytes(gzip.compress(json.dumps(value,separators=(',',':')).encode(),mtime=0));tmp.replace(target)
         print(f'Qualifying {key} driver {number}: {len(locations)} locations',flush=True)
-    best=min(value['laps'],key=lambda r:r[3],default=None)
-    points=cached.get(best[0],{}).get('locations',[]) if best else []
-    value['track']=[r[1:] for r in points if best and best[2]*1000<=r[0]<=(best[2]+best[3])*1000]
+    value['track'] = []
+    for lap in sorted(value['laps'], key=lambda row: row[3]):
+        points = cached.get(lap[0], {}).get('locations', [])
+        track = [r for r in points if lap[2]*1000 <= r[0] <= (lap[2]+lap[3])*1000]
+        if len(track) >= 3 and track[-1][0]-track[0][0] >= lap[3]*900:
+            value['track'] = [r[1:] for r in track]
+            break
     from circuit_geometry import enrich_mapped_pit
     enrich_mapped_pit(snapshot,value)
     value['complete']=True
@@ -116,7 +125,7 @@ def collect_qualifying(snapshot,directory,fetch):
 def render_qualifying(snapshot,directory=None):
     session = snapshot["session"]
     name = session.get("session_name", "")
-    practice = session.get("meeting_key") == 1300 and name in ("Practice 1", "Practice 2", "Practice 3")
+    practice = name in PRACTICE_SESSIONS and bool(snapshot.get("data", {}).get("laps"))
     if name != "Qualifying" and not practice:
         return ""
     key = session["session_key"]
@@ -124,10 +133,15 @@ def render_qualifying(snapshot,directory=None):
     if not path.exists():
         return ""
     meta = json.loads(gzip.decompress(path.read_bytes()))
-    if meta.get("session_key") != key or not meta.get("complete"):
+    if meta.get("session_key") != key or (not practice and not meta.get("complete")):
         return ""
     if practice:
-        meta.update(practice_timing(snapshot), label=f"FP{name[-1]}")
+        recorded = {d["number"]: d for d in meta.get("drivers", [])}
+        for d in snapshot["data"].get("drivers", []):
+            number = d["driver_number"]
+            recorded.setdefault(number, {"number": number, "name": d.get("name_acronym") or str(number),
+                                         "color": "#" + (d.get("team_colour") or "b6c7dc"), "locations": []})
+        meta.update(practice_timing(snapshot), label=f"FP{name[-1]}", drivers=list(recorded.values()))
     compounds = lap_compounds(snapshot)
     for lap in meta.get("laps", []):
         lap[5:] = [compounds.get((lap[0], lap[4]))]
@@ -137,12 +151,29 @@ def render_qualifying(snapshot,directory=None):
     phases = ('<label hidden><select class="q-phase"><option value="1">FP</option></select></label>' if practice
               else '<label>단계 <select class="q-phase" aria-label="퀄리파잉 단계"><option value="1">Q1</option><option value="2">Q2</option><option value="3">Q3</option></select></label>')
     location_note = (
-        "FP 위치 자료가 없는 차량과 시간대는 지도에 표시하지 않습니다. 순위표는 위치와 별개로 랩 기록을 사용합니다. 회색 선은 같은 대회 퀄리파잉 위치로 그린 서킷 참고선입니다."
+        "위치 자료가 없는 차량과 시간대는 지도에서 생략합니다. 순위표에는 재생 시각까지 완료한 유효 랩의 최고 기록을 표시합니다. 회색 선은 저장된 주행 좌표를 바탕으로 그린 서킷 참고선입니다."
         if practice else "선택한 단계의 실제 서킷 위치를 표시합니다."
     )
+    canvas = '<canvas class="q-canvas" width="1280" height="680" style="width:100%;max-width:1280px" aria-label="서킷 위치와 유효 최고 랩"></canvas>'
+    if practice:
+        canvas = """<style>
+.practice-replay-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.practice-replay-grid h4{color:#6deac9;margin:0 0 .65rem}
+.practice-timing{overflow:auto;max-height:32rem;border:1px solid #33465f;border-radius:8px}
+.practice-timing table{width:100%;min-width:315px;white-space:nowrap;font-size:.95rem}
+.practice-timing th,.practice-timing td{padding:.45rem;text-align:left}
+.practice-timing th{position:sticky;top:0;background:#18263b}
+.practice-timing tr:first-child td{background:#1b3556}
+.practice-replay-grid canvas{display:block;width:100%;height:auto}
+@media(max-width:760px){.practice-replay-grid{grid-template-columns:minmax(0,1fr)}}
+</style><div class="practice-replay-grid"><section><h4>드라이버 타이밍</h4>
+<div class="practice-timing" role="region" aria-label="프랙티스 드라이버 타이밍" tabindex="0">
+<table><thead><tr><th>드라이버</th><th>1위와의 차이</th><th>유효 최고 랩</th><th>타이어</th></tr></thead>
+<tbody class="q-timing"><tr><td colspan="4">아직 완료된 유효 랩이 없습니다.</td></tr></tbody></table></div></section>
+<section><h4>서킷 위치 · 시간별 재생</h4><canvas class="q-canvas" width="540" height="680" aria-label="프랙티스 서킷 위치"></canvas></section></div>"""
     return f'''<section class="qualifying-replay" id="qualifying-replay-{key}"><h3>{title}</h3><p>{location_note} 1위와의 차이는 각 선수의 유효 최고 랩을 비교한 값입니다. 타이어는 해당 랩의 스틴트 기준이며, 확인할 수 없으면 미확인으로 표시합니다.</p>
 <p>{phases} <button class="q-play" type="button">일시정지</button> <input class="q-seek" type="range" min="0" max="1000" value="0" aria-label="세션 재생 위치" style="width:40%"> <select class="q-rate" aria-label="세션 재생 속도"><option value="1">1배속</option><option value="4" selected>4배속</option><option value="8">8배속</option><option value="16">16배속</option><option value="32">32배속</option></select> <span class="q-clock"></span></p>
-<p class="q-status" role="status">위치 데이터를 준비하고 있습니다.</p><canvas class="q-canvas" width="1280" height="680" style="width:100%;max-width:1280px" aria-label="서킷 위치와 유효 최고 랩"></canvas>
+<p class="q-status" role="status">위치 데이터를 준비하고 있습니다.</p>{canvas}
 <p>기록은 랩 완료 뒤 반영하며, 삭제 기록과 대조해 식별된 랩과 아웃랩은 제외합니다. 위치가 2초 넘게 비면 숨깁니다. 미관측 위치를 피트에 있다고 추정하지 않습니다.</p>
 <p>청록색 피트레인은 지도 경로를 근사 정합한 참고선이며 실제 차량 궤적과는 구분합니다.</p>
 <script class="q-payload" type="application/octet-stream">{payload}</script><script>{script}</script></section>'''
@@ -155,7 +186,10 @@ def qualifying_sources(snapshot,directory=None):
     directory=directory or ROOT/'reports'/f'weekend-{meeting}'/'media'
     path=replay_path(snapshot, directory)
     meta=json.loads(gzip.decompress(path.read_bytes())) if path.exists() else {}
-    if meta.get('session_key')!=key or not meta.get('complete'):return []
+    practice = snapshot["session"].get("session_name") in PRACTICE_SESSIONS
+    if meta.get("session_key") != key:
+        meta = {}
+    if not practice and not meta.get("complete"):return []
     entries = [f"유효 랩·타이어: OpenF1 {openf1('race_control',key)} · {openf1('laps',key)} · {openf1('stints',key)} (보고서 스냅샷)"]
     if any(driver.get("locations") for driver in meta.get("drivers", [])):
         entries.append(f"위치: OpenF1 {openf1('location',key)} · 수집 {when(meta.get('fetched_at'))}")
